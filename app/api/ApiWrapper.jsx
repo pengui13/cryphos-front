@@ -6,10 +6,10 @@ import platform from "platform";
 
 const cookies = new Cookies();
 
-export const BASE_URL = "http://127.0.0.1:8000/api/";
-export const MEDIA_URL = "http://127.0.0.1:8000";
-export const WEBSOCKET_URL = "ws://127.0.0.1:8000/ws/";
-export const BASE_FRONT = "http://localhost:3000";
+export const BASE_URL = "https://cryphos.com/api/";
+export const MEDIA_URL = "https://cryphos.com";
+export const WEBSOCKET_URL = "wss://cryphos.com/ws/";
+export const BASE_FRONT = "https://localhost:3000";
 
 // Helpers
 function getCookieValue(name) {
