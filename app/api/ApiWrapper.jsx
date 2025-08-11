@@ -3,13 +3,20 @@
 
 import Cookies from "universal-cookie";
 import platform from "platform";
-
+const IntervalsMapping = {
+  "1m": "1MIN",
+  "5m": "5MIN",
+  "15m": "15MIN",
+  "30m": "30MIN",
+  "1h": "1HRS",
+  "1d": "1DAY",
+};
 const cookies = new Cookies();
 
-export const BASE_URL = "https://cryphos.com/api/";
-export const MEDIA_URL = "https://cryphos.com";
-export const WEBSOCKET_URL = "wss://cryphos.com/ws/";
-export const BASE_FRONT = "https://localhost:3000";
+export const BASE_URL = "http://127.0.0.1:8000/api/";
+export const MEDIA_URL = "http://127.0.0.1:8000";
+export const WEBSOCKET_URL = "ws://127.0.0.1:8000/ws/";
+export const BASE_FRONT = "http://localhost:3000";
 
 // Helpers
 function getCookieValue(name) {
@@ -25,7 +32,7 @@ async function refreshToken() {
   if (!refresh) return null;
 
   try {
-    const res = await fetch(`${BASE_URL}auth/token/refresh/`, {
+    const res = await fetch(`${BASE_URL}auth/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh }),
@@ -147,14 +154,153 @@ export function signIn(creds) {
     });
   });
 }
+export async function GetAllSymbolsNonStable(setSymbols) {
+  apiRequest({
+    endpoint: `${BASE_URL}assets/assets/`,
+    skipAuth: true,
+    onSuccess: (jsonData) => setSymbols(jsonData.assets),
+    onError: (error) => console.error("Fetching user profile failed", error),
+  });
+}
+export async function CreateBot(data, setSuccess, setError) {
+  // Create a deep copy of the data to avoid mutating the original
+  const formattedData = JSON.parse(JSON.stringify(data));
 
-/**
- * Log out: clear tokens.
- */
+  // Convert top-level interval if it exists
+  if (formattedData.interval && IntervalsMapping[formattedData.interval]) {
+    formattedData.interval = IntervalsMapping[formattedData.interval];
+  }
+
+  // Process intervals inside indicators
+  const indicators = [
+    "rsi",
+    "macd",
+    "ma",
+    "bb",
+    "bollinger",
+    "bollinger_bands",
+    "obv",
+    "atr",
+  ];
+
+  indicators.forEach((indicator) => {
+    if (
+      formattedData[indicator] &&
+      typeof formattedData[indicator] === "object"
+    ) {
+      // If the indicator has an intervals array, convert each interval
+      if (Array.isArray(formattedData[indicator].intervals)) {
+        formattedData[indicator].intervals = formattedData[
+          indicator
+        ].intervals.map((interval) => IntervalsMapping[interval] || interval);
+      }
+    }
+  });
+
+  apiRequest({
+    method: "POST",
+    endpoint: `${BASE_URL}bots/create_bot/`,
+    body: formattedData,
+    onSuccess: (jsonData) => setSuccess(true),
+    onError: (error) => setError(error.data.error),
+  });
+}
+export async function GetMyBots(setMyBots) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/get_bots/`,
+    onSuccess: (jsonData) => setMyBots(jsonData),
+    onError: (error) => console.error("Fetching user profile failed", error),
+  });
+}
+export async function GetPing(setPing) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/ping/`,
+    onSuccess: (jsonData) => setPing(jsonData.ping),
+    onError: (error) => setPing(false),
+  });
+}
+export async function GetAllBots(setMyBots) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/get_all_bots/`,
+    onSuccess: (jsonData) => setMyBots(jsonData),
+    onError: (error) => console.error("Fetching user profile failed", error),
+  });
+}
+export async function GetBotInfo(id, setInfo) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/get_info/${id}/`,
+    onSuccess: (jsonData) => setInfo(jsonData),
+    onError: (error) => console.error("Fetching user profile failed", error),
+  });
+}
+export async function GetBotSubscribers(id, setInfo) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/get_bot_subscribers/${id}/`,
+    onSuccess: (jsonData) => setInfo(jsonData),
+    onError: (error) => console.error("Fetching user profile failed", error),
+  });
+}
+export async function TransferInOutBot(
+  id,
+  transferIn,
+  amount,
+  setInfo,
+  open,
+  setError
+) {
+  apiRequest({
+    method: "POST",
+    endpoint: `${BASE_URL}bots/transfer_in_out/`,
+    body: {
+      amount: amount,
+      id: id,
+      transfer_in: transferIn,
+    },
+    onSuccess: (jsonData) => {
+      GetBotInfo(id, setInfo);
+      open(false);
+    },
+    onError: (error) => setError(error.data.error),
+  });
+}
+export async function GetRoiPnlBot(id, setRoiPnl) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/bots_roi_pnl/${id}/`,
+    onSuccess: (jsonData) => {
+      setRoiPnl(jsonData);
+    },
+    onError: (error) => console.error("Fetching user profile failed", error),
+  });
+}
+export async function GetAvailableBal(setAvailable) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/available_amount/`,
+    onSuccess: (jsonData) => setAvailable(jsonData.quantity),
+    onError: (error) => console.error("Fetching user profile failed", error),
+  });
+}
 export function signOut() {
   cookies.remove("access", { path: "/" });
   cookies.remove("refresh", { path: "/" });
 }
+// Add these functions to your ApiWrapper.js file
 
-// Export the generic request for other endpoints
-export { apiRequest };
+export async function RequestBotVerification(botId) {
+  return new Promise((resolve, reject) => {
+    apiRequest({
+      endpoint: `${BASE_URL}bots/toggle_verification/${botId}/`,
+      method: "POST",
+      onSuccess: (data) => resolve(data),
+      onError: (err) => reject(err),
+    });
+  });
+}
+
+export async function TogglePublishing(botId, setInfo) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/toggle_publishing/${botId}/`,
+    method: "POST",
+    onSuccess: (jsonData) => setInfo(jsonData),
+    onError: (error) => console.error("Toggle publishing failed", error),
+  });
+}

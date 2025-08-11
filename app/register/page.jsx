@@ -2,29 +2,42 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation"; // or 'next/router' if you’re on pages/
+import { useRouter } from "next/navigation";
 import { signUp } from "../api/ApiWrapper";
-
+import { motion, AnimatePresence } from "framer-motion";
+import SleekSnackbar from "../components/Snackbar";
 export default function Register() {
   const router = useRouter();
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [snackbarData, setSnackbarData] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setSnackbarData({
+        visible: true,
+        status: "error",
+        info: "Passwords do not match",
+      });
+      return;
+    }
+
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
+      setSnackbarData({
+        visible: true,
+        status: "error",
+        info: "Please fill in all fields",
+      });
       return;
     }
 
     setLoading(true);
+
     try {
       await signUp({
         username: fullName,
@@ -32,142 +45,181 @@ export default function Register() {
         password,
         password2: confirmPassword,
       });
-      router.push("/login");
+
+      setSnackbarData({
+        visible: true,
+        status: "success",
+        info: "Account created successfully! Redirecting to login...",
+      });
+
+      setTimeout(() => {
+        router.push("/login");
+      }, 1500);
     } catch (err) {
-      // handle DRF error shape { field: [msgs...] }
+      let errorMessage = "Registration failed";
+
       if (err.data && typeof err.data === "object") {
         const messages = Object.entries(err.data)
-          .map(([field, msgs]) => `${field}: ${msgs.join(" ")}`)
+          .map(([f, msgs]) => `${f}: ${msgs.join(" ")}`)
           .join(" • ");
-        setError(messages);
-      } else {
-        setError(err.message || "Registration failed");
+        errorMessage = messages;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
+
+      setSnackbarData({
+        visible: true,
+        status: "error",
+        info: errorMessage,
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbarData(null);
+  };
+
+  const handleKeyPress = (e, isLastField = false) => {
+    if (e.key === "Enter") {
+      if (isLastField) {
+        handleSubmit(e);
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-col md:flex-row w-full items-start pt-[200px] justify-center h-screen bg-gradient-to-r from-[#0a1620] to-black overflow-hidden">
-      {/* Left: Mascot & Text */}
-      <div className="relative w-[500px] flex items-center justify-center p-8">
-        <div className="max-w-sm text-white text-center md:text-left">
-          <h1 className="text-4xl font-bold mb-4">Join Cryphos</h1>
-          <p className="mb-6 text-white font-semibold">
-            Become part of our crypto bot & news community! Access advanced
-            trading tools, real-time news, and exclusive academy tutorials.
-          </p>
-          <Image
-            src="/mascot-logo.png"
-            alt="Cryphos Mascot"
-            width={400}
-            height={400}
-            className="object-contain"
-          />
-        </div>
-      </div>
+    <div className="relative min-h-screen bg-gradient-to-br from-black via-[#0d0019] to-black text-gray-100 overflow-hidden">
+      {/* Cosmic Background */}
+      <div className="planet planet-1" />
+      <div className="planet planet-2" />
+      <div className="planet planet-3" />
+      <div className="blur-background" />
 
-      {/* Right: Registration Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-lg text-white">
-          <h2 className="text-2xl font-semibold text-center mb-6">
-            Create an Account
+      <div className="relative z-10 w-full max-w-md mx-auto pt-8">
+        <div className="mt-12 bg-log-bkg/10 backdrop-blur-xl border border-white/10 rounded-3xl p-8">
+          <h2 className="text-2xl font-bold text-white mb-2 text-center">
+            Create Account
           </h2>
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Full Name */}
-            <div>
-              <label
-                htmlFor="fullName"
-                className="block text-sm font-medium mb-1"
-              >
-                Full Name
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your name"
-                required
-                className="w-full px-4 py-2 bg-transparent border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-root-green focus:border-transparent"
-              />
-            </div>
+          <p className="text-white/60 text-sm mb-6 text-center">
+            Start your professional trading journey
+          </p>
 
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full px-4 py-2 bg-transparent border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-root-green focus:border-transparent"
-              />
-            </div>
+          <div className="space-y-4">
+            {[
+              {
+                label: "Full Name",
+                value: fullName,
+                setter: setFullName,
+                type: "text",
+                placeholder: "John Doe",
+              },
+              {
+                label: "Email",
+                value: email,
+                setter: setEmail,
+                type: "email",
+                placeholder: "you@example.com",
+              },
+              {
+                label: "Password",
+                value: password,
+                setter: setPassword,
+                type: "password",
+                placeholder: "••••••••",
+              },
+              {
+                label: "Confirm Password",
+                value: confirmPassword,
+                setter: setConfirmPassword,
+                type: "password",
+                placeholder: "••••••••",
+                isLast: true,
+              },
+            ].map(({ label, value, setter, type, placeholder, isLast }) => (
+              <div key={label} className="space-y-1">
+                <label className="text-white/80 text-sm font-medium">
+                  {label}
+                </label>
+                <input
+                  type={type}
+                  value={value}
+                  onChange={(e) => setter(e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, isLast)}
+                  placeholder={placeholder}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-[#e3b8ff]/30 focus:border-[#e3b8ff]/50 transition"
+                />
+              </div>
+            ))}
 
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium mb-1"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-2 bg-transparent border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-root-green focus:border-transparent"
-              />
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium mb-1"
-              >
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-2 bg-transparent border border-gray-400 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-root-green focus:border-transparent"
-              />
-            </div>
-
-            {/* Error Message */}
-            {error && <p className="text-sm text-red-400">{error}</p>}
-
-            {/* Submit */}
             <button
-              type="submit"
+              onClick={handleSubmit}
               disabled={loading}
-              className="w-full py-3 bg-root-green rounded-md font-semibold hover:bg-green-600 transition disabled:opacity-50"
+              className="w-full py-3 mt-2 font-bold rounded-2xl bg-gradient-to-r from-[#e3b8ff] to-[#6a2e8e] text-black hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing Up…" : "Sign Up"}
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
-          </form>
-          <p className="mt-6 text-center text-sm text-gray-300">
+          </div>
+
+          <p className="mt-6 text-center text-white/60 text-sm">
             Already have an account?{" "}
-            <a href="/login" className="text-root-green hover:underline">
-              Sign In
+            <a href="/login" className="text-[#e3b8ff] hover:underline">
+              Log In
             </a>
           </p>
         </div>
       </div>
+
+      {/* Snackbar */}
+      <SleekSnackbar data={snackbarData} onClose={handleSnackbarClose} />
+
+      <style jsx>{`
+        .planet {
+          position: absolute;
+          border-radius: 50%;
+          opacity: 0.6;
+          z-index: 0;
+          animation: drift 6s ease-in-out infinite;
+        }
+        .planet-1 {
+          width: 100px;
+          height: 100px;
+          top: 10%;
+          left: 5%;
+          background: radial-gradient(circle, #310447, #53266e);
+        }
+        .planet-2 {
+          width: 150px;
+          height: 150px;
+          top: 60%;
+          left: 75%;
+          background: radial-gradient(circle, #e3b8ff, #6a2e8e);
+        }
+        .planet-3 {
+          width: 80px;
+          height: 80px;
+          top: 75%;
+          left: 45%;
+          background: radial-gradient(circle, #411664, #350952);
+        }
+        .blur-background {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(10px);
+          z-index: 1;
+        }
+        @keyframes drift {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+      `}</style>
     </div>
   );
 }
