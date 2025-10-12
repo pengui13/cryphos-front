@@ -1,173 +1,119 @@
 // app/layout.js
 "use client";
+
 import { Orbitron, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "./Header";
-import { useState, useEffect, createContext, useContext } from "react";
-
+import { useState, useEffect, useRef, createContext, useContext } from "react";
+import LogoSpinner from "./components/LogoSpinner";
 const orbitron = Orbitron({
   variable: "--font-orbitron",
   subsets: ["latin"],
   weight: ["400", "700"],
 });
-
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["300", "400", "600"],
 });
 
-// Loading Context
-const LoadingContext = createContext();
-
+const LoadingContext = createContext(null);
 export const useLoading = () => {
-  const context = useContext(LoadingContext);
-  if (!context) {
-    throw new Error("useLoading must be used within RootLayout");
-  }
-  return context;
+  const ctx = useContext(LoadingContext);
+  if (!ctx) throw new Error("useLoading must be used within RootLayout");
+  return ctx;
 };
 
-// Logo Spinner Component
-const LogoSpinner = ({ size = 100, logoSrc = "/logo.png" }) => {
-  return (
-    <>
-      <style jsx global>{`
-        @keyframes logoGlow {
-          0%,
-          100% {
-            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
-          }
-          50% {
-            filter: drop-shadow(0 0 35px rgba(255, 255, 255, 0.8))
-              drop-shadow(0 0 50px rgba(147, 112, 219, 0.6));
-          }
-        }
-
-        .loading-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(
-            135deg,
-            #0f0620 0%,
-            #1a0d2e 50%,
-            #0f0620 100%
-          );
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          z-index: 9999;
-          font-family: var(--font-inter), system-ui, sans-serif;
-        }
-
-        .spinner-wrapper {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 24px;
-        }
-
-        .spinner {
-          width: ${size}px;
-          height: ${size}px;
-          position: relative;
-          animation: logoGlow 2s ease-in-out infinite;
-        }
-
-        .spinner img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6));
-        }
-
-        .main-content {
-          transition: opacity 0.3s ease;
-        }
-
-        @media (max-width: 768px) {
-          .loading-text {
-            font-size: 16px !important;
-            letter-spacing: 1px !important;
-          }
-          .spinner {
-            width: ${size * 0.8}px !important;
-            height: ${size * 0.8}px !important;
-          }
-          .orb {
-            width: ${size * 0.8 + 40}px !important;
-            height: ${size * 0.8 + 40}px !important;
-          }
-          .orb-inner {
-            width: ${size * 0.8 + 20}px !important;
-            height: ${size * 0.8 + 20}px !important;
-          }
-        }
-      `}</style>
-
-      <div className="loading-overlay">
-        <div className="spinner-wrapper">
-          <div className="spinner">
-            <div className="orb"></div>
-            <div className="orb-inner"></div>
-            <img
-              src={logoSrc}
-              alt="Loading"
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
 
 export default function RootLayout({ children }) {
-  const [isLoading, setIsLoading] = useState(true);
+  const MIN_SHOW_MS = 600;   // avoid blink
+  const MAX_CAP_MS  = 2500;  // never hang
+  const FADE_MS     = 220;
+
+  const [isShowingOverlay, setIsShowingOverlay] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const startRef = useRef(Date.now());
 
   useEffect(() => {
-    // Handle initial loading
-    const handleLoad = () => {
-      // Minimum loading time of 1.5 seconds for better UX
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      const elapsed = Date.now() - startRef.current;
+      const wait = Math.max(0, MIN_SHOW_MS - elapsed);
       setTimeout(() => {
-        setIsLoading(false);
-      }, 1500);
+        setIsFadingOut(true);
+        setTimeout(() => setIsShowingOverlay(false), FADE_MS);
+      }, wait);
     };
 
+    // Preload + decode logo (so we can finish ASAP)
+    const img = new Image();
+    img.src = "/logo.png";
+    (img.decode ? img.decode() : Promise.resolve()).then(finish).catch(finish);
+
+    // Hard cap
+    const cap = setTimeout(finish, MAX_CAP_MS);
+
+    // Also finish on window load if earlier
+    const onLoad = () => finish();
     if (document.readyState === "complete") {
-      handleLoad();
+      finish();
     } else {
-      window.addEventListener("load", handleLoad);
-      return () => window.removeEventListener("load", handleLoad);
+      window.addEventListener("load", onLoad, { once: true });
     }
+
+    return () => {
+      clearTimeout(cap);
+      window.removeEventListener("load", onLoad);
+    };
   }, []);
 
-  // Provide loading context to children
   const loadingContextValue = {
-    isLoading,
-    setIsLoading,
-    showLoading: () => setIsLoading(true),
-    hideLoading: () => setIsLoading(false),
+    isLoading: isShowingOverlay,
+    setIsLoading: (v) => {
+      if (v) {
+        startRef.current = Date.now();
+        setIsFadingOut(false);
+        setIsShowingOverlay(true);
+      } else {
+        setIsFadingOut(true);
+        setTimeout(() => setIsShowingOverlay(false), FADE_MS);
+      }
+    },
+    showLoading: () => {
+      startRef.current = Date.now();
+      setIsFadingOut(false);
+      setIsShowingOverlay(true);
+    },
+    hideLoading: () => {
+      setIsFadingOut(true);
+      setTimeout(() => setIsShowingOverlay(false), FADE_MS);
+    },
   };
 
   return (
     <html lang="en">
+      <head>
+        {/* Preload the logo so decode finishes quickly */}
+        <link rel="preload" as="image" href="/logo.png" />
+        {/* Prevent body flash scrollbars while overlay is visible */}
+        <style>{`html,body{height:100%} body{margin:0;}`}</style>
+      </head>
       <body className={`${orbitron.variable} ${inter.variable} antialiased`}>
         <LoadingContext.Provider value={loadingContextValue}>
-          {isLoading && <LogoSpinner size={100} logoSrc="/logo.png" />}
+          {isShowingOverlay && (
+            <LogoSpinner size={100} logoSrc="/logo.png" fadingOut={isFadingOut} />
+          )}
 
           <div
             className="main-content"
             style={{
-              opacity: isLoading ? 0 : 1,
-              pointerEvents: isLoading ? "none" : "auto",
+              opacity: isShowingOverlay ? 0 : 1,
+              pointerEvents: isShowingOverlay ? "none" : "auto",
+              transition: "opacity 220ms ease",
             }}
+            aria-busy={isShowingOverlay}
           >
             <Header />
             {children}
