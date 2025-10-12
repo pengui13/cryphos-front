@@ -117,7 +117,6 @@ export default function LogoSpinner({ size = 100, logoSrc = "/logo.png", fadingO
         </div>
       </div>
 
-      {/* Respect reduced motion */}
       <style jsx global>{`
         @media (prefers-reduced-motion: reduce) {
           svg animateTransform {

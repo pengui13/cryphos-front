@@ -9,13 +9,13 @@ export default function Header() {
     GetPing(setPing);
   }, []);
   return (
-    <header className="flex items-center justify-between w-full px-6 py-4 relative">
+    <header className="flex bg-[#0f1115] items-center justify-between w-full px-6 py-4 relative">
       <div className="flex items-center">
         {/* Logo */}
-        <Image src={"/logo.png"} width={48} height={48} />
+        <Image src={"/logo.png"} width={36} height={36} />
 
         {/* Site title */}
-        <span className="text-xl font-bold text-white">Cryphos</span>
+        <span className="text-xl font-semibold text-white">Cryphos</span>
       </div>
       {!ping && (
         <div className="flex items-center gap-6">
