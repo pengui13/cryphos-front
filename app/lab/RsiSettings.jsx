@@ -1,8 +1,35 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
-const timeframes = ["1m", "5m", "15m", "30m", "1h", "1d"];
+const ALL_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "1d"];
+
+const PRESETS = {
+  aggressive: {
+    label: "Aggressive",
+    min: 25,
+    max: 75,
+    period: 7,
+    intervals: ["1m", "5m", "15m"],
+    note: "Faster signals, higher trade frequency",
+  },
+  balanced: {
+    label: "Balanced",
+    min: 30,
+    max: 70,
+    period: 14,
+    intervals: ["5m", "15m", "1h"],
+    note: "Standard RSI, good for most markets",
+  },
+  defensive: {
+    label: "Defensive",
+    min: 35,
+    max: 65,
+    period: 21,
+    intervals: ["15m", "30m", "1h", "1d"],
+    note: "Fewer signals, smoother noise",
+  },
+};
 
 export default function RsiSettings({
   enabled,
@@ -12,264 +39,342 @@ export default function RsiSettings({
   settings,
   setSettings,
 }) {
+  const [preset, setPreset] = useState(null);
   const [selectedTimeframes, setSelectedTimeframes] = useState(
-    settings?.intervals || ["1m"]
+    settings?.intervals?.length ? settings.intervals : ["1m"]
   );
   const [rsiValues, setRsiValues] = useState([
-    settings?.min || 30,
-    settings?.max || 70,
+    settings?.min ?? 30,
+    settings?.max ?? 70,
   ]);
-  const [period, setPeriod] = useState(settings?.period || 14);
+  const [period, setPeriod] = useState(settings?.period ?? 14);
 
-  // Update parent state when local state changes
+  const matchedPreset = useMemo(() => {
+    const match = (k) => {
+      const p = PRESETS[k];
+      const sameLevels = p.min === rsiValues[0] && p.max === rsiValues[1];
+      const samePeriod = p.period === period;
+      const sameTfs =
+        p.intervals.length === selectedTimeframes.length &&
+        p.intervals.every((t) => selectedTimeframes.includes(t));
+      return sameLevels && samePeriod && sameTfs;
+    };
+    if (match("aggressive")) return "aggressive";
+    if (match("balanced")) return "balanced";
+    if (match("defensive")) return "defensive";
+    return "custom";
+  }, [rsiValues, period, selectedTimeframes]);
+
   useEffect(() => {
     setSettings({
-      period: period,
+      period,
       max: rsiValues[1],
       min: rsiValues[0],
       intervals: selectedTimeframes,
     });
   }, [period, rsiValues, selectedTimeframes, setSettings]);
 
-  const toggleTimeframe = (timeframe) => {
-    const newTimeframes = selectedTimeframes.includes(timeframe)
-      ? selectedTimeframes.filter((t) => t !== timeframe)
-      : [...selectedTimeframes, timeframe];
+  function applyPreset(k) {
+    const p = PRESETS[k];
+    setPreset(k);
+    setRsiValues([p.min, p.max]);
+    setPeriod(p.period);
+    setSelectedTimeframes(p.intervals);
+  }
 
-    if (newTimeframes.length > 0) {
-      setSelectedTimeframes(newTimeframes);
-    }
-  };
+  function toggleTimeframe(tf) {
+    setSelectedTimeframes((cur) => {
+      const exists = cur.includes(tf);
+      const next = exists ? cur.filter((t) => t !== tf) : [...cur, tf];
+      return next.length ? next : cur; // keep at least one
+    });
+  }
+
+  function selectAll() {
+    setSelectedTimeframes([...ALL_TIMEFRAMES]);
+  }
+  function selectNone() {
+    setSelectedTimeframes(["1m"]); // keep at least one
+  }
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">Configure RSI</h2>
-        <p className="text-white/60 text-sm">
-          Set up your trading strategy parameters
-        </p>
-      </div>
-
-      {/* Timeframes Section */}
-      <div className="space-y-4">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Timeframes</h3>
-          <p className="text-white/60 text-sm mb-4">
-            Select analysis intervals
+          <h2 className="text-2xl font-bold text-white mb-1">Configure RSI</h2>
+          <p className="text-white/60 text-sm">
+            Tune thresholds, period, and analysis intervals
           </p>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {timeframes.map((timeframe) => {
-            const isSelected = selectedTimeframes.includes(timeframe);
-            return (
-              <button
-                key={timeframe}
-                onClick={() => toggleTimeframe(timeframe)}
-                className={`
-                  py-2 px-4 rounded-lg text-sm font-medium transition-colors
-                  ${
-                    isSelected
-                      ? "bg-[#e3b8ff]/20 border border-[#e3b8ff]/40 text-[#e3b8ff]"
-                      : "bg-white/5 border border-white/10 text-white/70 hover:bg-white/10"
-                  }
-                `}
-              >
-                {timeframe}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* RSI Levels Section */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-2">
-            Trading Levels
-          </h3>
-          <p className="text-white/60 text-sm mb-4">
-            Set buy/sell signal thresholds
-          </p>
-        </div>
-
-        <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-          <div className="mb-8">
-            <Slider
-              range
-              min={0}
-              max={100}
-              value={rsiValues}
-              onChange={setRsiValues}
-              allowCross={false}
-              pushable={5}
-              trackStyle={[
-                {
-                  backgroundColor: "#e3b8ff",
-                  height: 6,
-                  borderRadius: 3,
-                },
-              ]}
-              railStyle={{
-                backgroundColor: "#374151",
-                height: 6,
-                borderRadius: 3,
-              }}
-              handleStyle={[
-                {
-                  backgroundColor: "#10b981",
-                  borderColor: "#10b981",
-                  height: 20,
-                  width: 20,
-                  marginTop: -7,
-                  opacity: 1,
-                  border: "2px solid white",
-                  borderRadius: "50%",
-                },
-                {
-                  backgroundColor: "#ef4444",
-                  borderColor: "#ef4444",
-                  height: 20,
-                  width: 20,
-                  marginTop: -7,
-                  opacity: 1,
-                  border: "2px solid white",
-                  borderRadius: "50%",
-                },
-              ]}
+        {/* Enable switch */}
+        <button
+          onClick={() => setEnabled?.(!enabled)}
+          className={`group inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors
+          ${
+            enabled
+              ? "border-[#e3b8ff]/40 bg-[#e3b8ff]/10 text-[#e3b8ff]"
+              : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
+          }`}
+          aria-pressed={enabled}
+          aria-expanded={enabled}
+          aria-controls="rsi-sections"
+        >
+          <span
+            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+              enabled ? "bg-[#e3b8ff]" : "bg-white/20"
+            }`}
+          >
+            <span
+              className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-black transition-transform ${
+                enabled ? "translate-x-3.5" : "translate-x-0"
+              }`}
             />
-
-            <div className="flex justify-between mt-4 text-xs text-white/60">
-              <span>0</span>
-              <span>50</span>
-              <span>100</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-green-400 font-medium text-sm">
-                  Buy Signal
-                </span>
-              </div>
-              <p className="text-white/80 text-sm">
-                When RSI &lt;{" "}
-                <span className="font-bold text-green-400">{rsiValues[0]}</span>
-              </p>
-            </div>
-
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <span className="text-red-400 font-medium text-sm">
-                  Sell Signal
-                </span>
-              </div>
-              <p className="text-white/80 text-sm">
-                When RSI &gt;{" "}
-                <span className="font-bold text-red-400">{rsiValues[1]}</span>
-              </p>
-            </div>
-          </div>
-        </div>
+          </span>
+          {enabled ? "Enabled" : "Disabled"}
+        </button>
       </div>
 
-      {/* Period Section */}
-      <div className="space-y-4">
+      {/* Collapsible sections */}
+      <div
+        id="rsi-sections"
+        className={`transition-all duration-300 ease-out ${
+          enabled
+            ? "max-h-[4000px] opacity-100 translate-y-0"
+            : "max-h-0 opacity-0 -translate-y-1 pointer-events-none select-none"
+        } overflow-hidden space-y-8`}
+      >
+        {/* Preset selector */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">
-            Calculation Period
-          </h3>
-          <p className="text-white/60 text-sm mb-4">
-            Number of periods for RSI calculation
-          </p>
-        </div>
-
-        <div className="grid grid-cols-5 gap-3">
-          {[7, 9, 14, 17, 21].map((p) => {
-            const isSelected = period === p;
-            const isDefault = p === 14;
-            return (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`
-                  relative py-3 px-4 rounded-lg font-medium transition-colors
-                  ${
-                    isSelected
-                      ? "bg-[#e3b8ff]/20 border border-[#e3b8ff]/40 text-[#e3b8ff]"
-                      : "bg-white/5 border border-white/10 text-white/70 hover:bg-white/10"
-                  }
-                `}
-              >
-                {p}
-                {isDefault && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <span className="text-black text-xs">★</span>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">Mode</h3>
+            <span className="text-xs text-white/50">
+              {matchedPreset === "custom"
+                ? "Custom"
+                : PRESETS[matchedPreset].label}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {Object.keys(PRESETS).map((k) => {
+              const p = PRESETS[k];
+              const active = matchedPreset === k;
+              return (
+                <button
+                  key={k}
+                  onClick={() => applyPreset(k)}
+                  className={[
+                    "group rounded-xl border p-4 text-left transition-all",
+                    active
+                      ? "border-[#e3b8ff]/60 bg-[#e3b8ff]/10"
+                      : "border-white/10 bg-white/5 hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm font-semibold ${
+                        active ? "text-[#e3b8ff]" : "text-white"
+                      }`}
+                    >
+                      {p.label}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded border border-white/10 text-white/60">
+                      RSI {p.min}-{p.max} • {p.period}
+                    </span>
                   </div>
-                )}
-              </button>
-            );
-          })}
+                  <p className="mt-2 text-xs text-white/60">{p.note}</p>
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {p.intervals.map((tf) => (
+                      <span
+                        key={tf}
+                        className={`text-[11px] px-2 py-0.5 rounded border ${
+                          active
+                            ? "border-[#e3b8ff]/40 text-[#e3b8ff]"
+                            : "border-white/10 text-white/60"
+                        }`}
+                      >
+                        {tf}
+                      </span>
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <p className="text-white/50 text-xs text-center">
-          ★ 14 is the standard default period
-        </p>
-      </div>
+        {/* Timeframes */}
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Timeframes</h3>
+              <p className="text-white/60 text-sm">Choose analysis intervals</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={selectAll}
+                className="text-xs px-3 py-1 rounded border border-white/15 text-white/70 hover:bg-white/10 transition-colors"
+              >
+                All
+              </button>
+              <button
+                onClick={selectNone}
+                className="text-xs px-3 py-1 rounded border border-white/15 text-white/70 hover:bg-white/10 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
 
-      {/* Configuration Summary */}
-      <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-        <h3 className="text-white font-medium mb-4">Current Configuration</h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span className="text-white/60">Timeframes:</span>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {selectedTimeframes.map((tf) => (
-                <span
+          <div className="flex flex-wrap gap-2">
+            {ALL_TIMEFRAMES.map((tf) => {
+              const on = selectedTimeframes.includes(tf);
+              return (
+                <button
                   key={tf}
-                  className="px-2 py-1 bg-[#e3b8ff]/20 text-[#e3b8ff] text-xs rounded"
+                  onClick={() => toggleTimeframe(tf)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                    on
+                      ? "border-[#e3b8ff]/40 bg-[#e3b8ff]/10 text-[#e3b8ff]"
+                      : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                  }`}
                 >
                   {tf}
-                </span>
-              ))}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Levels */}
+        <div>
+          <div className="mb-3">
+            <h3 className="text-lg font-semibold text-white">Levels</h3>
+            <p className="text-white/60 text-sm">Set buy/sell signal thresholds</p>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+            <div className="mb-6">
+              <Slider
+                range
+                min={0}
+                max={100}
+                value={rsiValues}
+                onChange={(v) => setRsiValues(v)}
+                allowCross={false}
+                pushable={3}
+                trackStyle={[
+                  { backgroundColor: "#e3b8ff", height: 6, borderRadius: 3 },
+                ]}
+                railStyle={{
+                  backgroundColor: "rgba(255,255,255,0.12)",
+                  height: 6,
+                  borderRadius: 3,
+                }}
+                handleStyle={[
+                  {
+                    backgroundColor: "#0F1115",
+                    borderColor: "#e3b8ff",
+                    boxShadow: "none",
+                    height: 18,
+                    width: 18,
+                    marginTop: -6,
+                    borderWidth: 2,
+                  },
+                  {
+                    backgroundColor: "#0F1115",
+                    borderColor: "#6a2e8e",
+                    boxShadow: "none",
+                    height: 18,
+                    width: 18,
+                    marginTop: -6,
+                    borderWidth: 2,
+                  },
+                ]}
+                dotStyle={{ display: "none" }}
+                activeDotStyle={{ display: "none" }}
+                marks={{ 0: "0", 50: "50", 100: "100" }}
+              />
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-green-400" />
+                    <span className="text-green-300 font-medium">
+                      Buy when RSI &lt; {rsiValues[0]}
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
+                    <span className="text-red-300 font-medium">
+                      Sell when RSI &gt; {rsiValues[1]}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Period quick picks */}
+            <div>
+              <label className="block text-sm text-white/70 mb-2">
+                Calculation Period
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {[7, 9, 14, 17, 21].map((p) => {
+                  const on = period === p;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPeriod(p)}
+                      className={`rounded-lg px-3 py-2 text-sm border transition-all ${
+                        on
+                          ? "border-[#e3b8ff]/40 bg-[#e3b8ff]/10 text-[#e3b8ff]"
+                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                      }`}
+                      aria-pressed={on}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs text-white/50">
+                14 is the standard default period.
+              </p>
             </div>
           </div>
+        </div>
 
-          <div>
-            <span className="text-white/60">Levels:</span>
-            <p className="text-white font-medium mt-1">
-              {rsiValues[0]} / {rsiValues[1]}
-            </p>
-          </div>
-
-          <div>
-            <span className="text-white/60">Period:</span>
-            <p className="text-white font-medium mt-1">{period} candles</p>
+        {/* Summary */}
+        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+          <h3 className="text-white font-medium mb-4">Current Configuration</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="text-white/60">Mode:</span>
+              <p className="text-white mt-1 font-medium">
+                {matchedPreset === "custom"
+                  ? "Custom"
+                  : PRESETS[matchedPreset].label}
+              </p>
+            </div>
+            <div>
+              <span className="text-white/60">Levels:</span>
+              <p className="text-white mt-1 font-medium">
+                {rsiValues[0]} / {rsiValues[1]}
+              </p>
+            </div>
+            <div>
+              <span className="text-white/60">Period & Timeframes:</span>
+              <p className="text-white mt-1 font-medium">
+                {period} • {selectedTimeframes.join(", ")}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <button
-          onClick={() => setStep(step - 1)}
-          className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg transition-colors"
-        >
-          ← Back
-        </button>
 
-        <button
-          onClick={() => setStep(step + 1)}
-          className="px-8 py-3 bg-gradient-to-r from-[#e3b8ff] to-[#6a2e8e] text-black font-medium rounded-lg hover:scale-105 transition-transform"
-        >
-          Continue →
-        </button>
-      </div>
     </div>
   );
 }

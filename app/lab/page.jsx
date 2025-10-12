@@ -1,7 +1,6 @@
 "use client";
 import ConfigureBalance from "./ConfigureBalance";
 import { useState, useEffect } from "react";
-import BotModal from "./BotModal";
 import ConfigureBot from "./ConfigureBot";
 import Basic from "./Basic";
 import AssetsBlock from "./AssetsBlock";
@@ -33,7 +32,6 @@ export default function BotsFactory() {
   });
 
   function handleStep(nextStep) {
-    // Reset any existing error
     setError("");
     if (step == 1) {
       if (selectedSymbols.length == 0) {
@@ -53,8 +51,6 @@ export default function BotsFactory() {
         return;
       }
     }
-
-    // All good — advance the step
     setStep(nextStep);
   }
 
@@ -91,7 +87,6 @@ export default function BotsFactory() {
       newSettings.portfolio_volume = balanceSettings.amount;
       newSettings.stop_loss = balanceSettings.tpSlValues[0];
       newSettings.take_profit = balanceSettings.tpSlValues[1];
-
       return newSettings;
     });
   }, [name, description, selectedSymbols, balanceSettings, tgNickname]);
@@ -104,9 +99,17 @@ export default function BotsFactory() {
     3: "Add your telegram nickname",
   };
 
+  // Progress (0% at step 1, 100% at last step)
+  const clamped = Math.min(Math.max(step, 1), totalSteps);
+  const progressPct =
+    totalSteps > 1 ? ((clamped - 1) / (totalSteps - 1)) * 100 : 0;
+
+  // Create even segment markers for the bar (no circles)
+  const segments = Array.from({ length: totalSteps - 1 }, (_, i) => i + 1);
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-black via-[#0d0019] to-black text-gray-100 flex flex-col items-center">
-      {/* Animated Planets & Space Elements */}
+      {/* Animated Planets & Space Elements (kept as-is) */}
       <div className="planet planet-1" />
       <div className="planet planet-2" />
       <div className="planet planet-3" />
@@ -119,32 +122,51 @@ export default function BotsFactory() {
       <div className="relative z-10 w-full max-w-4xl mx-auto px-6 pt-16 pb-8">
         {/* Header Section */}
         <div className="text-center mb-8">
-          <p className="text-white text-2xl mb-6">{stepTitles[step]} </p>
+          <p className="text-white text-2xl mb-4">{stepTitles[step]}</p>
 
-          {/* Step Progress Indicator */}
-          <div className="flex items-center justify-center space-x-2 mb-2">
-            {[1, 2, 3].map((stepNum) => (
-              <div key={stepNum} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                    step >= stepNum
-                      ? "bg-gradient-to-r from-[#e3b8ff] to-[#6a2e8e] text-black"
-                      : "bg-white/10 text-white/60 border border-white/20"
-                  }`}
-                >
-                  {stepNum}
+          {/* PROGRESS BAR (no circles) */}
+          <div className="mx-auto w-full max-w-xl">
+            {/* Labels */}
+            <div className="mb-2 grid" style={{ gridTemplateColumns: `repeat(${totalSteps}, minmax(0,1fr))` }}>
+              {[1, 2, 3].slice(0, totalSteps).map((n) => (
+                <div key={n} className="text-[11px] text-white/70 text-center truncate">
+                  {stepTitles[n]}
                 </div>
-                {stepNum < 3 && (
-                  <div
-                    className={`w-8 h-0.5 mx-2 transition-all duration-300 ${
-                      step > stepNum
-                        ? "bg-gradient-to-r from-[#e3b8ff] to-[#6a2e8e]"
-                        : "bg-white/20"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Track + Fill */}
+            <div className="relative h-2 rounded bg-white/10">
+              {/* Segments (thin vertical dividers) */}
+              {segments.map((n) => (
+                <span
+                  key={n}
+                  className="absolute top-0 bottom-0 w-px bg-white/15"
+                  style={{ left: `${(n / totalSteps) * 100}%` }}
+                  aria-hidden="true"
+                />
+              ))}
+              {/* Fill */}
+              <div
+                className="h-2 rounded bg-[#e3b8ff] transition-[width] duration-500"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+
+            {/* Step text */}
+            <div className="mt-2 text-center text-white/60 text-sm">
+              Step {clamped} of {totalSteps}
+            </div>
+
+            {/* a11y */}
+            <div
+              className="sr-only"
+              role="progressbar"
+              aria-valuemin={1}
+              aria-valuemax={totalSteps}
+              aria-valuenow={clamped}
+              aria-label="Step progress"
+            />
           </div>
         </div>
 
@@ -153,8 +175,6 @@ export default function BotsFactory() {
           {/* Content Area */}
           <div className="p-8 md:p-12">
             <div className="min-h-[500px]">
-              <BotModal opened={success} open={setSuccess} />
-
               {/* Step Content */}
               {step === 1 ? (
                 <AssetsBlock
@@ -198,6 +218,7 @@ export default function BotsFactory() {
         </div>
       </div>
 
+      {/* Original styles (kept) */}
       <style jsx>{`
         .planet {
           position: absolute;
