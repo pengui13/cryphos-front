@@ -90,7 +90,9 @@ module.exports = {
       },
 
       fontFamily: {
-        inter: ["Inter", "sans-serif"],
+        inter: ["var(--font-inter)", "system-ui", "sans-serif"],
+        space: ["var(--font-space)", "var(--font-inter)", "system-ui", "sans-serif"],
+
       },
 
       backgroundImage: {

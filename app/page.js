@@ -73,10 +73,10 @@ export default function Home() {
         <section className="grid grid-cols-1 lg:grid-cols-12 items-center gap-10 pt-16 lg:pt-24 pb-10 lg:pb-20">
           {/* LEFT: headline */}
           <div className="lg:col-span-6">
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-semibold leading-[1.05] tracking-tight">
               <TypingEffect text={message} />
             </h1>
-            <p className="mt-5 max-w-xl text-lg sm:text-xl text-white/70">
+            <p className="mt-5 max-w-xl !font-inter text-lg sm:text-xl text-white/70">
               Automated market signals delivered to your Telegram—crafted to cut noise and highlight only what matters.
             </p>
 
@@ -226,9 +226,9 @@ export default function Home() {
           box-shadow: 0 0 18px rgba(227,184,255,0.7);
           opacity: 0.9;
         }
-        .s1 { right: 14%; top: 18%; animation: float1 6s ease-in-out infinite; }
-        .s2 { right: 28%; bottom: 20%; width: 10px; height: 10px; animation: float2 7.5s ease-in-out infinite; }
-        .s3 { right: 6%; bottom: 10%; width: 8px; height: 8px; animation: float3 5.5s ease-in-out infinite; }
+        .s1 { right: 34%; top: 18%; animation: float1 6s ease-in-out infinite; }
+        .s2 { right: 49%; bottom: 20%; width: 10px; height: 10px; animation: float2 3.5s ease-in-out infinite; }
+        .s3 { right: 13%; bottom: 10%; width: 8px; height: 8px; animation: float3 2.5s ease-in-out infinite; }
 
         @keyframes float1 {
           0%,100% { transform: translate3d(0,0,0); }

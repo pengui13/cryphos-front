@@ -1,20 +1,22 @@
 // app/layout.js
 "use client";
 
-import { Orbitron, Inter } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Header from "./Header";
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import LogoSpinner from "./components/LogoSpinner";
-const orbitron = Orbitron({
-  variable: "--font-orbitron",
+
+const space = Space_Grotesk({
+  variable: "--font-space",
   subsets: ["latin"],
-  weight: ["400", "700"],
+    display: "swap",
 });
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["300", "400", "600"],
+    display: "swap",
 });
 
 const LoadingContext = createContext(null);
@@ -24,10 +26,9 @@ export const useLoading = () => {
   return ctx;
 };
 
-
 export default function RootLayout({ children }) {
-  const MIN_SHOW_MS = 600;   // avoid blink
-  const MAX_CAP_MS  = 2500;  // never hang
+  const MIN_SHOW_MS = 600;
+  const MAX_CAP_MS  = 2500;
   const FADE_MS     = 220;
 
   const [isShowingOverlay, setIsShowingOverlay] = useState(true);
@@ -47,21 +48,14 @@ export default function RootLayout({ children }) {
       }, wait);
     };
 
-    // Preload + decode logo (so we can finish ASAP)
     const img = new Image();
     img.src = "/logo.png";
     (img.decode ? img.decode() : Promise.resolve()).then(finish).catch(finish);
 
-    // Hard cap
     const cap = setTimeout(finish, MAX_CAP_MS);
-
-    // Also finish on window load if earlier
     const onLoad = () => finish();
-    if (document.readyState === "complete") {
-      finish();
-    } else {
-      window.addEventListener("load", onLoad, { once: true });
-    }
+    if (document.readyState === "complete") finish();
+    else window.addEventListener("load", onLoad, { once: true });
 
     return () => {
       clearTimeout(cap);
@@ -95,12 +89,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* Preload the logo so decode finishes quickly */}
         <link rel="preload" as="image" href="/logo.png" />
-        {/* Prevent body flash scrollbars while overlay is visible */}
         <style>{`html,body{height:100%} body{margin:0;}`}</style>
       </head>
-      <body className={`${orbitron.variable} ${inter.variable} antialiased`}>
+      <body className={`${inter.variable} ${space.variable} antialiased`}>
         <LoadingContext.Provider value={loadingContextValue}>
           {isShowingOverlay && (
             <LogoSpinner size={100} logoSrc="/logo.png" fadingOut={isFadingOut} />
