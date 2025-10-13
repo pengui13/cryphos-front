@@ -61,7 +61,6 @@ export default function SleekSnackbar({ data, onClose }) {
           className="fixed bottom-6 right-6 z-50 w-80"
         >
           <div className="bg-[#1a0d2e] border border-[#2d1b4e]/50 rounded-lg overflow-hidden shadow-lg backdrop-blur-sm">
-            {/* Clean progress bar */}
             <motion.div
               className="h-0.5 w-full"
               style={{ backgroundColor: accent }}
