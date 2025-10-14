@@ -89,7 +89,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
+        <title>Cryphos</title>
         <link rel="preload" as="image" href="/logo.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
+
         <style>{`html,body{height:100%} body{margin:0;}`}</style>
       </head>
       <body className={`${inter.variable} ${space.variable} antialiased`}>

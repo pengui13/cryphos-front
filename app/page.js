@@ -68,7 +68,7 @@ export default function Home() {
         <div className="absolute right-[-20%] top-[10%] h-[800px] w-[800px] rounded-full bg-[#e3b8ff]/10 blur-[120px]" />
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-6">
+      <div className="mx-auto w-full max-w-7xl px-6 mt-[-60px]">
         {/* HERO */}
         <section className="grid grid-cols-1 lg:grid-cols-12 items-center gap-10 pt-16 lg:pt-24 pb-10 lg:pb-20">
           {/* LEFT: headline */}
