@@ -1,11 +1,14 @@
 // app/layout.js
 "use client";
-
+import React from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Header from "./Header";
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import LogoSpinner from "./components/LogoSpinner";
+import { GetPing } from "./api/ApiWrapper";
+const PingContext = createContext(false);
+export const usePing = () => useContext(PingContext);
 
 const space = Space_Grotesk({
   variable: "--font-space",
@@ -34,7 +37,11 @@ export default function RootLayout({ children }) {
   const [isShowingOverlay, setIsShowingOverlay] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const startRef = useRef(Date.now());
+  const [ping, setPing] = useState(false);
 
+  useEffect(() => {
+    GetPing(setPing);
+  }, []);
   useEffect(() => {
     let finished = false;
     const finish = () => {
@@ -110,9 +117,13 @@ export default function RootLayout({ children }) {
             }}
             aria-busy={isShowingOverlay}
           >
-            <Header />
+                    <PingContext.Provider value={ping}>
+
+            <Header ping={ping} />
             {children}
-          </div>
+                    </PingContext.Provider>
+
+         </div>
         </LoadingContext.Provider>
       </body>
     </html>

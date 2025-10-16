@@ -35,7 +35,7 @@ export default function Login() {
         status: "success",
         info: "Login successful! Redirecting…",
       });
-      setTimeout(() => router.push("/lab"), 900);
+  window.location.href = "/lab"; 
     } catch (err) {
       let errorMessage = "Login failed";
       if (err && err.data && typeof err.data === "object") {
@@ -58,10 +58,6 @@ export default function Login() {
     <div className="relative min-h-screen bg-[#0f1115] text-zinc-100">
       {/* Header */}
 
-      {/* Subtle spotlight */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-[#6a2e8e]/20 blur-3xl" />
-      </div>
 
       <main className="mx-auto flex w-full max-w-6xl items-center justify-center px-6 py-14">
         <section className="w-full max-w-md">

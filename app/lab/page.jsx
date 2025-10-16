@@ -1,12 +1,15 @@
 "use client";
-import ConfigureBalance from "./ConfigureBalance";
+
 import { useState, useEffect } from "react";
 import ConfigureBot from "./ConfigureBot";
-import Basic from "./Basic";
 import AssetsBlock from "./AssetsBlock";
 import ConfigureTg from "./ConfigureTg";
 import Snackbar from "../components/Snackbar";
 import { CreateBot } from "../api/ApiWrapper";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import Image from "next/image";
+import { usePing } from "../layout";
 
 export default function BotsFactory() {
   const [snackData, setSnackData] = useState({
@@ -14,7 +17,11 @@ export default function BotsFactory() {
     status: false,
     type: "prime",
     info: "",
-  });
+  }); 
+
+    const ping = usePing();
+
+  // Core state
   const [name, setName] = useState("");
   const [tgNickname, setTgNickname] = useState("");
   const [description, setDescription] = useState("");
@@ -24,24 +31,26 @@ export default function BotsFactory() {
   const [rsiEnabled, setRsiEnabled] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [coverImage, setCoverImage] = useState(null);
 
+  // Balance block (if you show it elsewhere, it’s already wired here)
   const [balanceSettings, setBalanceSettings] = useState({
     amount: "",
-    tpSlValues: [-50, 100], // [Stop Loss, Take Profit]
+    tpSlValues: [-50, 100], // [SL, TP]
   });
 
   function handleStep(nextStep) {
     setError("");
-    if (step == 1) {
-      if (selectedSymbols.length == 0) {
+    if (step === 1) {
+      if (selectedSymbols.length === 0) {
         setError("Select at least 1 asset");
         return;
       }
-    } else if (step == 2) {
+    } else if (step === 2) {
+      // include FG in the “any indicator” check
       if (
         !botSettings.rsi &&
         !botSettings.ma &&
+        !botSettings.fg &&
         !botSettings.obv &&
         !botSettings.art &&
         !botSettings.macd &&
@@ -54,6 +63,7 @@ export default function BotsFactory() {
     setStep(nextStep);
   }
 
+  // RSI defaults (kept for compatibility)
   const [rsiSettings, setRsiSettings] = useState({
     period: 14,
     max: 70,
@@ -61,83 +71,70 @@ export default function BotsFactory() {
     intervals: ["1m"],
   });
 
+  // Snackbar + transient errors
   useEffect(() => {
-    if (error) {
-      setSnackData({ visible: true, info: error, status: false });
-    }
+    if (error) setSnackData({ visible: true, info: error, status: false });
   }, [error]);
 
   useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => {
-        setError("");
-      }, 2500);
-      return () => clearTimeout(timer);
-    }
+    if (!error) return;
+    const timer = setTimeout(() => setError(""), 2500);
+    return () => clearTimeout(timer);
   }, [error]);
 
+  // Sync general settings into botSettings
   useEffect(() => {
-    setBotSettings((prevSettings) => {
-      const newSettings = { ...prevSettings };
-      newSettings.name = name;
-      newSettings.description = description;
-      newSettings.bot_assets = selectedSymbols;
-      newSettings.tg_nickname = tgNickname;
-      // Include balance settings
-      newSettings.portfolio_volume = balanceSettings.amount;
-      newSettings.stop_loss = balanceSettings.tpSlValues[0];
-      newSettings.take_profit = balanceSettings.tpSlValues[1];
-      return newSettings;
-    });
+    setBotSettings((prev) => ({
+      ...prev,
+      name,
+      description,
+      bot_assets: selectedSymbols,
+      tg_nickname: tgNickname,
+      portfolio_volume: balanceSettings.amount,
+      stop_loss: balanceSettings.tpSlValues[0],
+      take_profit: balanceSettings.tpSlValues[1],
+    }));
   }, [name, description, selectedSymbols, balanceSettings, tgNickname]);
 
+  // Steps
   const totalSteps = 3;
-
   const stepTitles = {
-    1: "Select Assets",
-    2: "Configure RSI",
-    3: "Add your telegram nickname",
+    1: "Select assets",
+    2: "Configure indicators",
+    3: "Connect Telegram",
   };
-
-  // Progress (0% at step 1, 100% at last step)
   const clamped = Math.min(Math.max(step, 1), totalSteps);
-  const progressPct =
-    totalSteps > 1 ? ((clamped - 1) / (totalSteps - 1)) * 100 : 0;
-
-  // Create even segment markers for the bar (no circles)
+  const progressPct = totalSteps > 1 ? ((clamped - 1) / (totalSteps - 1)) * 100 : 0;
   const segments = Array.from({ length: totalSteps - 1 }, (_, i) => i + 1);
 
-  return (
-    <div className="relative min-h-screen bg-gradient-to-br from-black via-[#0d0019] to-black text-gray-100 flex flex-col items-center">
-      {/* Animated Planets & Space Elements (kept as-is) */}
-      <div className="planet planet-1" />
-      <div className="planet planet-2" />
-      <div className="planet planet-3" />
-      <div className="planet planet-4" />
-      <div className="blur-background" />
+  return (ping ?
 
+    <div className="relative min-h-screen bg-[#0f1115] text-zinc-100">
+  
       <Snackbar data={snackData} />
 
-      {/* Main Content Container */}
-      <div className="relative z-10 w-full max-w-4xl mx-auto px-6 pt-16 pb-8">
-        {/* Header Section */}
-        <div className="text-center mb-8">
-          <p className="text-white text-2xl mb-4">{stepTitles[step]}</p>
+      <div className="mx-auto w-full max-w-6xl px-6 py-10">
+        {/* Header + progress */}
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{stepTitles[step]}</h1>
+          <p className="mt-2 text-white/70">
+            Build your strategy in three quick steps.
+          </p>
 
-          {/* PROGRESS BAR (no circles) */}
-          <div className="mx-auto w-full max-w-xl">
-            {/* Labels */}
-            <div className="mb-2 grid" style={{ gridTemplateColumns: `repeat(${totalSteps}, minmax(0,1fr))` }}>
-              {[1, 2, 3].slice(0, totalSteps).map((n) => (
-                <div key={n} className="text-[11px] text-white/70 text-center truncate">
-                  {stepTitles[n]}
-                </div>
+          <div className="mx-auto mt-6 w-full max-w-2xl">
+            {/* labels row */}
+            <div
+              className="mb-2 grid text-[11px] text-white/70"
+              style={{ gridTemplateColumns: `repeat(${totalSteps}, minmax(0,1fr))` }}
+            >
+              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((n) => (
+                <div key={n} className="truncate">{stepTitles[n]}</div>
               ))}
             </div>
 
-            {/* Track + Fill */}
-            <div className="relative h-2 rounded bg-white/10">
-              {/* Segments (thin vertical dividers) */}
+            {/* progress bar */}
+            <div className="relative h-2 overflow-hidden rounded-full border border-white/10 bg-white/5">
+              {/* segment ticks */}
               {segments.map((n) => (
                 <span
                   key={n}
@@ -146,19 +143,17 @@ export default function BotsFactory() {
                   aria-hidden="true"
                 />
               ))}
-              {/* Fill */}
+              {/* fill */}
               <div
-                className="h-2 rounded bg-[#e3b8ff] transition-[width] duration-500"
+                className="h-full rounded-full bg-[#e3b8ff] transition-[width] duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
 
-            {/* Step text */}
             <div className="mt-2 text-center text-white/60 text-sm">
               Step {clamped} of {totalSteps}
             </div>
 
-            {/* a11y */}
             <div
               className="sr-only"
               role="progressbar"
@@ -168,14 +163,18 @@ export default function BotsFactory() {
               aria-label="Step progress"
             />
           </div>
-        </div>
+        </header>
 
-        {/* Main Card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
-          {/* Content Area */}
-          <div className="p-8 md:p-12">
+        {/* Main card */}
+        <motion.div
+          initial={{ opacity: 0, y: 8, scale: 0.995 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.35 }}
+          className="rounded-[28px] border border-white/10 bg-white/8 shadow-[0_10px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden"
+        >
+          {/* Content area */}
+          <div className="p-6 md:p-10">
             <div className="min-h-[500px]">
-              {/* Step Content */}
               {step === 1 ? (
                 <AssetsBlock
                   setStep={setStep}
@@ -197,88 +196,63 @@ export default function BotsFactory() {
                   tgNickname={tgNickname}
                   step={step}
                   setStep={setStep}
-                  onCreateBot={() =>
-                    CreateBot(botSettings, setSuccess, setError)
-                  }
+                  onCreateBot={() => CreateBot(botSettings, setSuccess, setError)}
                   setTgNickname={setTgNickname}
                 />
               )}
             </div>
           </div>
 
-          <div className="px-8 md:px-12 py-6 border-t border-white/10 bg-white/5">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 text-center">
-                <div className="text-white/60 text-sm">
-                  Step {step} of {totalSteps}
-                </div>
+          {/* Footer stripe */}
+          <div className="px-6 md:px-10 py-5 border-t border-white/10 bg-white/5">
+            <div className="flex items-center justify-center">
+              <div className="text-white/60 text-sm">
+                Step {step} of {totalSteps}
               </div>
             </div>
           </div>
+        </motion.div>
+      </div>
+    </div>
+    :
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f1115] text-zinc-100 px-6">
+      <div className="flex flex-col items-center gap-6">
+        {/* Lock icon */}
+        <div className="relative">
+          <Image
+            src="/padlock.png"
+            alt="Locked"
+            width={220}
+            height={220}
+            className="drop-shadow-[0_0_25px_rgba(227,184,255,0.25)]"
+            priority
+          />
+        </div>
+
+        {/* Message */}
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-center">
+          You are not authorized
+        </h1>
+        <p className="text-white/60 text-center max-w-md">
+          Please log in to unlock this page and continue using Cryphos.
+        </p>
+
+        {/* CTA */}
+        <div className="flex gap-3 mt-4">
+          <Link
+            href="/login"
+            className="px-6 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold transition hover:bg-[#d7a8ff] hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus-visible:ring focus-visible:ring-[#e3b8ff]/60"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/register"
+            className="px-6 py-3 rounded-xl border border-white/15 bg-white/5 text-white font-medium hover:bg-white/10 transition"
+          >
+            Register
+          </Link>
         </div>
       </div>
-
-      {/* Original styles (kept) */}
-      <style jsx>{`
-        .planet {
-          position: absolute;
-          border-radius: 50%;
-          z-index: 0;
-          animation: drift 6s ease-in-out infinite;
-        }
-        .planet-1 {
-          width: 120px;
-          height: 120px;
-          top: 15%;
-          left: 8%;
-          background: radial-gradient(circle, #310447, #53266e);
-          animation-delay: 0s;
-        }
-        .planet-2 {
-          width: 180px;
-          height: 180px;
-          top: 65%;
-          right: 10%;
-          background: radial-gradient(circle, #e3b8ff, #6a2e8e);
-          animation-delay: 2s;
-        }
-        .planet-3 {
-          width: 90px;
-          height: 90px;
-          top: 80%;
-          left: 15%;
-          background: radial-gradient(circle, #411664, #350952);
-          animation-delay: 4s;
-        }
-        .planet-4 {
-          width: 60px;
-          height: 60px;
-          top: 25%;
-          right: 25%;
-          background: radial-gradient(circle, #2a1038, #4a1f5c);
-          animation-delay: 1s;
-        }
-        .blur-background {
-          position: absolute;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.3);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          z-index: 1;
-        }
-        @keyframes drift {
-          0%,
-          100% {
-            transform: translateY(0) rotate(0deg);
-          }
-          33% {
-            transform: translateY(-15px) rotate(120deg);
-          }
-          66% {
-            transform: translateY(10px) rotate(240deg);
-          }
-        }
-      `}</style>
     </div>
   );
 }
