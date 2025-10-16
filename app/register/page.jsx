@@ -119,7 +119,7 @@
     const api = {
       start: async ({ email, password, confirmPassword }) => {
         // change if your API base differs
-        const res = await fetch("http://127.0.0.1:8000/api/auth/register/start/", {
+        const res = await fetch("https://cryphos.com/api/auth/register/start/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -136,7 +136,7 @@
         return data;
       },
       verify: async ({ email, code }) => {
-        const res = await fetch("http://127.0.0.1:8000/api/auth/register/verify/", {
+        const res = await fetch("https://cryphos.com/api/auth/register/verify/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, code }),
@@ -149,7 +149,7 @@
       },
       // OPTIONAL: only wire this if you created a resend endpoint. If not, hide button.
       resend: async ({ email }) => {
-        const res = await fetch("http://127.0.0.1:8000/api/auth/register/resend/", {
+        const res = await fetch("https://cryphos.com/api/auth/register/resend/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),

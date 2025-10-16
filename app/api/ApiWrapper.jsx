@@ -13,10 +13,10 @@ const IntervalsMapping = {
 };
 const cookies = new Cookies();
 
-export const BASE_URL = "http://127.0.0.1:8000/api/";
+export const BASE_URL = "https://cryphos.com/api/";
 export const MEDIA_URL = "http://127.0.0.1:8000";
 export const WEBSOCKET_URL = "ws://127.0.0.1:8000/ws/";
-export const BASE_FRONT = "http://localhost:3000";
+export const BASE_FRONT = "https://cryphos.com/";
 
 // Helpers
 function getCookieValue(name) {
