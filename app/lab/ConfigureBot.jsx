@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import RsiSettings from "./RsiSettings";
 import MaSettings from "./MaSettings";
-import FGSettings from "./FgSettings";
+import FGSettings from "./FGSettings";
 // import BollingerBands from "./BollingerBands";
 import { motion } from "framer-motion";
 
