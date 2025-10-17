@@ -12,16 +12,16 @@ export default function SleekSnackbar({ data, onClose }) {
       const t = setTimeout(() => {
         setVisible(false);
         onClose?.();
-      }, 2400);
+      }, 2600); // shorter, crisp
       return () => clearTimeout(t);
     }
   }, [data, onClose]);
 
-  // Minimalistic professional colors
+  // Cryphos palette
   const buyAccent = "#6366f1"; // Indigo
   const sellAccent = "#ec4899"; // Pink
   const successAccent = "#10b981"; // Emerald
-  const neutralAccent = "#8b5cf6"; // Purple - matching your theme
+  const neutralAccent = "#b48efc"; // Lilac
 
   const accent =
     data?.side === "buy"
@@ -32,37 +32,26 @@ export default function SleekSnackbar({ data, onClose }) {
       ? successAccent
       : neutralAccent;
 
-  // title & message
-  const title = data?.side
-    ? `${data.side.charAt(0).toUpperCase() + data.side.slice(1)} ${
-        data.symbol
-      }/USDT`
-    : data?.status
-    ? "Success"
-    : null; // No title for generic notifications
-
   const message =
     data?.info ??
     (data?.side
-      ? `Price: ${data.price} · Amount: ${data.amount}`
+      ? `${data.side === "buy" ? "Bought" : "Sold"} ${data.amount} ${data.symbol} @ ${data.price}`
       : "Operation completed");
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 20, opacity: 0 }}
-          transition={{
-            duration: 0.3,
-            ease: "easeOut",
-          }}
-          className="fixed bottom-6 right-6 z-50 w-80"
+          initial={{ y: 24, opacity: 0, scale: 0.98 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 24, opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+          className="fixed bottom-7 right-7 z-50 w-[320px]"
         >
-          <div className="bg-[#1a0d2e] border border-[#2d1b4e]/50 rounded-lg overflow-hidden shadow-lg backdrop-blur-sm">
+          <div className="relative overflow-hidden rounded-xl border border-white/10 shadow-lg backdrop-blur-md bg-[#121216]/80">
+            {/* Accent bar (subtle, 2px) */}
             <motion.div
-              className="h-0.5 w-full"
+              className="h-[2px] w-full"
               style={{ backgroundColor: accent }}
               initial={{ scaleX: 1 }}
               animate={{ scaleX: 0 }}
@@ -70,6 +59,7 @@ export default function SleekSnackbar({ data, onClose }) {
               transformOrigin="left"
             />
 
+            {/* Content */}
             <div className="flex items-center gap-3 px-4 py-3.5">
               <span
                 className="flex-shrink-0 w-2 h-2 rounded-full"
@@ -77,12 +67,15 @@ export default function SleekSnackbar({ data, onClose }) {
               />
 
               <div className="flex-1">
-                <p className=" text-white font-medium mt-0.5">{message}</p>
+                <p className="text-white text-sm font-medium tracking-tight leading-snug">
+                  {message}
+                </p>
               </div>
 
+              {/* Close button (super minimal) */}
               <button
                 onClick={() => setVisible(false)}
-                className="flex-shrink-0 p-1.5 rounded-md hover:bg-white/5 transition-colors duration-150"
+                className="flex-shrink-0 p-1 rounded hover:bg-white/5 transition"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
