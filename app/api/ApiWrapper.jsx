@@ -140,7 +140,6 @@ export function signIn(creds) {
 
   return new Promise((resolve, reject) => {
     apiRequest({
-      
       endpoint: `${BASE_URL}auth/login/`,
       method: "POST",
       skipAuth: true,
@@ -218,29 +217,6 @@ export async function GetPing(setPing) {
     endpoint: `${BASE_URL}bots/ping/`,
     onSuccess: (jsonData) => setPing(jsonData.ping),
     onError: (error) => setPing(false),
-  });
-}
-export function signIn(creds) {
-  const platformInfo = {
-    device: platform.name || "Browser",
-    os: platform.os?.family || "Unknown",
-  };
-
-  return new Promise((resolve, reject) => {
-    apiRequest({
-      
-      endpoint: `${BASE_URL}auth/login/`,
-      method: "POST",
-      skipAuth: true,
-      headers: { "HTTP-USER-DATA": JSON.stringify(platformInfo) },
-      body: creds,
-      onSuccess: ({ access, refresh }) => {
-        setCookieValue("access", access);
-        setCookieValue("refresh", refresh);
-        resolve({ access, refresh });
-      },
-      onError: (err) => reject(err),
-    });
   });
 }
 export async function GetAllBots(setMyBots) {
