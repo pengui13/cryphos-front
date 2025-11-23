@@ -159,3 +159,6 @@ select:focus {
   background: var(--primary);
   color: white;
 }
+button{
+  cursor: pointer;
+}

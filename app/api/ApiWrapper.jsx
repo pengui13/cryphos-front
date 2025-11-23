@@ -13,10 +13,10 @@ const IntervalsMapping = {
 };
 const cookies = new Cookies();
 
-export const BASE_URL = "https://cryphos.com/api/";
+export const BASE_URL = "http://127.0.0.1:8000/api/";
 export const MEDIA_URL = "http://127.0.0.1:8000";
 export const WEBSOCKET_URL = "ws://127.0.0.1:8000/ws/";
-export const BASE_FRONT = "https://cryphos.com/";
+export const BASE_FRONT = "http://localhost:3000/";
 
 // Helpers
 function getCookieValue(name) {
@@ -283,7 +283,6 @@ export function signOut() {
   cookies.remove("access", { path: "/" });
   cookies.remove("refresh", { path: "/" });
 }
-// Add these functions to your ApiWrapper.js file
 
 export async function RequestBotVerification(botId) {
   return new Promise((resolve, reject) => {
@@ -302,5 +301,73 @@ export async function TogglePublishing(botId, setInfo) {
     method: "POST",
     onSuccess: (jsonData) => setInfo(jsonData),
     onError: (error) => console.error("Toggle publishing failed", error),
+  });
+}
+
+
+
+export function GetBacktestData(botId, params, onSuccess) {
+  return apiRequest({
+    method: "POST",
+    endpoint: `${BASE_URL}bots/backtest/${botId}/`,
+    body: {
+      usdt_value: params.usdt_value,
+      take_profit: params.take_profit,
+      stop_loss: params.stop_loss,
+    },
+    onSuccess: (json) => onSuccess?.(json),
+    onError: (err) => {
+      console.error("GetBacktestData failed:", err);
+      onSuccess?.(null);
+    },
+  });
+}
+
+export function GetBillingStatus(onSuccess, onError) {
+  return apiRequest({
+    endpoint: `${BASE_URL}auth/billing/me/`,
+    method: "GET",
+    onSuccess: (json) => {
+      if (onSuccess) onSuccess(json);
+    },
+    onError: (err) => {
+      console.error("GetBillingStatus failed:", err);
+      if (onError) onError(err);
+    },
+  });
+}
+
+export function CreateStripeCheckoutSession(onSuccess, onError) {
+  return apiRequest({
+    endpoint: `${BASE_URL}auth/billing/create-checkout-session/`,
+    method: "POST",
+    onSuccess: (json) => {
+      if (onSuccess) onSuccess(json); // json.url from backend
+    },
+    onError: (err) => {
+      console.error("CreateStripeCheckoutSession failed:", err);
+      if (onError) onError(err);
+    },
+  });
+}
+
+
+
+export async function GetBots(setBots) {
+  apiRequest({
+    endpoint: `${BASE_URL}bots/bots_list/`,
+    onSuccess: (jsonData) => setBots(jsonData),
+    onError: (error) => console.error("Fetching user profile failed", error),
+  });
+}
+export async function DeleteBots(id) {
+  return apiRequest({
+    endpoint: `${BASE_URL}bots/delete_bot/${id}/`,
+    method: "DELETE",
+    onSuccess: (jsonData) => console.log("Bot deleted", jsonData),
+    onError: (error) => {
+      console.error("Delete bot failed", error);
+      throw error; 
+    },
   });
 }

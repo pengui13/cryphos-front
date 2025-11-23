@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+
 import RsiSettings from "./RsiSettings";
 import MaSettings from "./MaSettings";
-import FGSettings from "./FGSettings";
-// import BollingerBands from "./BollingerBands";
-import { motion } from "framer-motion";
+// import FGSettings from "./FGSettings";
+import SrSettings from "./SrSettings"; // ⬅️ новый модуль S/R
 
 export default function ConfigureBot({
   botSettings,
@@ -13,7 +14,7 @@ export default function ConfigureBot({
   step,
   setStep,
 }) {
-  // ===== RSI =====
+  /* ===================== RSI ===================== */
   const [rsiEnabled, setRsiEnabled] = useState(botSettings?.rsi?.enabled ?? true);
   const [rsiSettings, setRsiSettings] = useState({
     period:    botSettings?.rsi?.period    ?? 14,
@@ -22,14 +23,14 @@ export default function ConfigureBot({
     intervals: botSettings?.rsi?.intervals ?? ["1m"],
   });
 
-  // ===== EMA / MA =====
+  /* ===================== EMA / MA ===================== */
   const [maEnabled, setMaEnabled] = useState(botSettings?.ma?.enabled ?? false);
   const [maSettings, setMaSettings] = useState({
     period:    botSettings?.ma?.period    ?? 20,
     intervals: botSettings?.ma?.intervals ?? ["1m"],
   });
 
-  // ===== Fear & Greed (no intervals) =====
+  /* ===================== Fear & Greed (опционально) ===================== */
   const [fgEnabled, setFgEnabled] = useState(botSettings?.fg?.enabled ?? false);
   const [fgSettings, setFgSettings] = useState({
     lower:    botSettings?.fg?.lower    ?? 20,
@@ -37,21 +38,31 @@ export default function ConfigureBot({
     lookback: botSettings?.fg?.lookback ?? 2,
   });
 
-  // ===== Bollinger Bands (kept for future; not rendered below) =====
-  const [bbEnabled, setBbEnabled] = useState(botSettings?.bb?.enabled ?? false);
-  const [bbSettings, setBbSettings] = useState({
-    period:    botSettings?.bb?.period    ?? 20,
-    std_dev:   botSettings?.bb?.std_dev   ?? 2.0,
-    intervals: botSettings?.bb?.intervals ?? ["1m"],
+  /* ===================== S/R (Support / Resistance) ===================== */
+  const [srEnabled, setSrEnabled] = useState(botSettings?.sr?.enabled ?? true);
+  const [srSettings, setSrSettings] = useState({
+    mode:            botSettings?.sr?.mode            ?? "both",      // "rolling" | "pivots" | "both"
+    intervals:       botSettings?.sr?.intervals       ?? ["5m","15m","1h"],
+    lookback:        botSettings?.sr?.lookback        ?? 50,
+    levels_count:    botSettings?.sr?.levels_count    ?? 6,
+    zone_mode:       botSettings?.sr?.zone_mode       ?? "atr",       // "atr" | "fixed"
+    atr_period:      botSettings?.sr?.atr_period      ?? 14,
+    atr_mult:        botSettings?.sr?.atr_mult        ?? 0.75,
+    fixed_width:     botSettings?.sr?.fixed_width     ?? 0.002,       // 0.2% от цены
+    merge_dist_atr:  botSettings?.sr?.merge_dist_atr  ?? 0.5,
+    pivot_type:      botSettings?.sr?.pivot_type      ?? "classic",   // "classic" | "fibo" | "woodie" | "camarilla"
+    pivot_tf:        botSettings?.sr?.pivot_tf        ?? "daily",     // "daily" | "weekly" | "monthly"
+    vwap_enabled:    botSettings?.sr?.vwap_enabled    ?? true,
+    vwap_bands:      botSettings?.sr?.vwap_bands      ?? 1,
   });
 
-  // Any enabled?
+  /* ===================== Any enabled? ===================== */
   const anyEnabled = useMemo(
-    () => rsiEnabled || maEnabled || bbEnabled || fgEnabled,
-    [rsiEnabled, maEnabled, bbEnabled, fgEnabled]
+    () => rsiEnabled || maEnabled || fgEnabled || srEnabled,
+    [rsiEnabled, maEnabled, fgEnabled, srEnabled]
   );
 
-  // ===== Persist into parent botSettings JSON =====
+  /* ===================== Persist → parent JSON ===================== */
   useEffect(() => {
     setBotSettings((prev) => {
       const next = { ...prev };
@@ -68,9 +79,9 @@ export default function ConfigureBot({
       if (fgEnabled) next.fg = { ...fgSettings, enabled: true, type: "FG" };
       else if (next.fg) delete next.fg;
 
-      // BB
-      if (bbEnabled) next.bb = { ...bbSettings, enabled: true };
-      else if (next.bb) delete next.bb;
+      // S/R
+      if (srEnabled) next.sr = { ...srSettings, enabled: true, type: "SR" };
+      else if (next.sr) delete next.sr;
 
       return next;
     });
@@ -78,23 +89,24 @@ export default function ConfigureBot({
     rsiEnabled, rsiSettings,
     maEnabled,  maSettings,
     fgEnabled,  fgSettings,
-    bbEnabled,  bbSettings,
+    srEnabled,  srSettings,
     setBotSettings,
   ]);
 
-  // ===== Step controls =====
+  /* ===================== Step controls ===================== */
   const handleBack = () => setStep?.(Math.max(1, (step || 2) - 1));
   const handleNext = () => {
     if (!anyEnabled) return;
     setStep?.((step || 2) + 1);
   };
 
-  // UI helpers
+  /* ===================== UI helpers ===================== */
   const enabledBadges = [
+    srEnabled && "S/R",
     rsiEnabled && "RSI",
     maEnabled && "EMA",
     fgEnabled && "FG",
-    bbEnabled && "BB",
+    // bbEnabled && "BB", // если вернёте BB
   ].filter(Boolean);
 
   return (
@@ -104,7 +116,7 @@ export default function ConfigureBot({
       transition={{ duration: 0.25 }}
       className="flex flex-col w-full gap-6"
     >
-      {/* Header */}
+      {/* ===== Header ===== */}
       <div className="flex items-start justify-between rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
         <div>
           <h2 className="text-[22px] font-semibold tracking-tight">Configure indicators</h2>
@@ -133,8 +145,19 @@ export default function ConfigureBot({
         </div>
       </div>
 
-      {/* Sections (each subcomponent manages its own collapse/enable) */}
+      {/* ===== Sections ===== */}
       <div className="grid grid-cols-1 gap-6">
+        {/* S/R */}
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+          <SrSettings
+            enabled={srEnabled}
+            setEnabled={setSrEnabled}
+            settings={srSettings}
+            setSettings={setSrSettings}
+          />
+        </section>
+
+        {/* RSI */}
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
           <RsiSettings
             step={step}
@@ -146,6 +169,7 @@ export default function ConfigureBot({
           />
         </section>
 
+        {/* MA */}
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
           <MaSettings
             enabled={maEnabled}
@@ -155,6 +179,8 @@ export default function ConfigureBot({
           />
         </section>
 
+        {/* FG (если нужно — раскомментируйте секцию и импорт) */}
+        {/*
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
           <FGSettings
             enabled={fgEnabled}
@@ -163,19 +189,10 @@ export default function ConfigureBot({
             setSettings={setFgSettings}
           />
         </section>
-
-        {/* Keep BB wiring handy for later
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-          <BollingerBands
-            enabled={bbEnabled}
-            setEnabled={setBbEnabled}
-            settings={bbSettings}
-            setSettings={setBbSettings}
-          />
-        </section> */}
+        */}
       </div>
 
-      {/* Footer nav */}
+      {/* ===== Footer nav ===== */}
       <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-4">
         <button
           onClick={handleBack}
