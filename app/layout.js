@@ -3,6 +3,7 @@
 import React from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import Footer from "./components/Footer";
 import Header from "./Header";
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import LogoSpinner from "./components/LogoSpinner";
@@ -121,6 +122,7 @@ export default function RootLayout({ children }) {
 
             <Header ping={ping} />
             {children}
+            <Footer />
                     </PingContext.Provider>
 
          </div>

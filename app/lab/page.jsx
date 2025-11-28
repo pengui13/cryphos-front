@@ -5,7 +5,12 @@ import ConfigureBot from "./ConfigureBot";
 import AssetsBlock from "./AssetsBlock";
 import ConfigureTg from "./ConfigureTg";
 import Snackbar from "../components/Snackbar";
-import { CreateBot, GetBillingStatus, CreateStripeCheckoutSession } from "../api/ApiWrapper";
+import {
+  CreateBot,
+  GetBillingStatus,
+  CreateStripeCheckoutSession,
+} from "../api/ApiWrapper";
+
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -17,6 +22,8 @@ const stripePromise = loadStripe(
 );
 
 export default function BotsFactory() {
+  const ping = usePing();
+
   const [snackData, setSnackData] = useState({
     visible: false,
     status: false,
@@ -24,22 +31,20 @@ export default function BotsFactory() {
     info: "",
   });
 
-  const ping = usePing();
-
   const [billing, setBilling] = useState({
     loading: true,
     isActive: false,
     status: null,
+    bots_count: 0,
   });
 
+  // wizard state
   const [name, setName] = useState("");
   const [tgNickname, setTgNickname] = useState("");
   const [description, setDescription] = useState("");
   const [selectedSymbols, setSelectedSymbols] = useState([]);
   const [step, setStep] = useState(1);
   const [botSettings, setBotSettings] = useState({});
-  const [rsiEnabled, setRsiEnabled] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
   const [balanceSettings, setBalanceSettings] = useState({
@@ -47,12 +52,13 @@ export default function BotsFactory() {
     tpSlValues: [-50, 100],
   });
 
-  /* ---------------- Subscription: load billing status ---------------- */
-
+  /* -----------------------------------------------------------
+     LOAD BILLING (WITH bots_count)
+  ----------------------------------------------------------- */
   useEffect(() => {
-    if (!ping) return; // not logged in -> handled below
+    if (!ping) return;
 
-    setBilling((prev) => ({ ...prev, loading: true }));
+    setBilling((p) => ({ ...p, loading: true }));
 
     GetBillingStatus(
       (data) => {
@@ -60,11 +66,12 @@ export default function BotsFactory() {
           loading: false,
           isActive: data.is_active,
           status: data.status,
+          bots_count: data.bots_count ?? 0,
         });
       },
       (err) => {
         console.error(err);
-        setBilling((prev) => ({ ...prev, loading: false }));
+        setBilling((p) => ({ ...p, loading: false }));
         setSnackData({
           visible: true,
           status: false,
@@ -75,57 +82,68 @@ export default function BotsFactory() {
     );
   }, [ping]);
 
-const handleSubscribe = () => {
-  CreateStripeCheckoutSession(
-    (data) => {
-      if (data && data.url) {
-        window.location.href = data.url; // 🔥 just go to Stripe Checkout
-      } else {
+  /* -----------------------------------------------------------
+     HANDLE SUBSCRIPTION
+  ----------------------------------------------------------- */
+  const handleSubscribe = () => {
+    CreateStripeCheckoutSession(
+      (data) => {
+        if (data?.url) {
+          window.location.href = data.url;
+        } else {
+          setSnackData({
+            visible: true,
+            status: false,
+            type: "prime",
+            info: data?.error || "Could not create checkout session",
+          });
+        }
+      },
+      (err) => {
+        console.error(err);
         setSnackData({
           visible: true,
           status: false,
           type: "prime",
-          info: data?.error || "Could not create checkout session",
+          info: "Could not start Stripe checkout",
         });
       }
-    },
-    (err) => {
-      console.error(err);
-      setSnackData({
-        visible: true,
-        status: false,
-        type: "prime",
-        info: "Could not start Stripe checkout",
-      });
-    }
-  );
-};
+    );
+  };
 
-
+  /* -----------------------------------------------------------
+     WIZARD STEP VALIDATION
+  ----------------------------------------------------------- */
   function handleStep(nextStep) {
     setError("");
-    if (step === 1) {
-      if (selectedSymbols.length === 0) {
-        setError("Select at least 1 asset");
-        return;
-      }
-    } else if (step === 2) {
-      if (
+
+    if (step === 1 && selectedSymbols.length === 0) {
+      setError("Select at least 1 asset");
+      return;
+    }
+
+    if (step === 2) {
+      const noIndicators =
         !botSettings.rsi &&
         !botSettings.ma &&
         !botSettings.fg &&
         !botSettings.obv &&
         !botSettings.art &&
         !botSettings.macd &&
-        !botSettings.bb
-      ) {
+        !botSettings.bb;
+
+      if (noIndicators) {
         setError("Select at least one indicator");
         return;
       }
     }
+
     setStep(nextStep);
   }
 
+  /* -----------------------------------------------------------
+     ERROR → SNACK
+  ----------------------------------------------------------- */
   useEffect(() => {
     if (error)
       setSnackData({
@@ -138,10 +156,13 @@ const handleSubscribe = () => {
 
   useEffect(() => {
     if (!error) return;
-    const timer = setTimeout(() => setError(""), 2500);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setError(""), 2500);
+    return () => clearTimeout(t);
   }, [error]);
 
+  /* -----------------------------------------------------------
+     UPDATE FINAL BOT SETTINGS STRUCTURE
+  ----------------------------------------------------------- */
   useEffect(() => {
     setBotSettings((prev) => ({
       ...prev,
@@ -155,198 +176,208 @@ const handleSubscribe = () => {
     }));
   }, [name, description, selectedSymbols, balanceSettings, tgNickname]);
 
+  /* -----------------------------------------------------------
+     UI ELEMENTS CONFIG
+  ----------------------------------------------------------- */
   const totalSteps = 3;
-  const stepTitles = {
+  const titles = {
     1: "Select assets",
     2: "Configure indicators",
     3: "Connect Telegram",
   };
-  const clamped = Math.min(Math.max(step, 1), totalSteps);
+
   const progressPct =
-    totalSteps > 1 ? ((clamped - 1) / (totalSteps - 1)) * 100 : 0;
-  const segments = Array.from({ length: totalSteps - 1 }, (_, i) => i + 1);
+    totalSteps > 1 ? ((step - 1) / (totalSteps - 1)) * 100 : 0;
 
-  /* ----------------- RENDERING --------------------------------------- */
+  /* -----------------------------------------------------------
+     RENDERING LOGIC
+  ----------------------------------------------------------- */
 
+  // Not logged in
   if (!ping) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f1115] text-zinc-100 px-6">
-        <div className="flex flex-col items-center gap-6">
-          <div className="relative">
-            <Image
-              src="/padlock.png"
-              alt="Locked"
-              width={220}
-              height={220}
-              className="drop-shadow-[0_0_25px_rgba(227,184,255,0.25)]"
-              priority
-            />
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-center">
-            You are not authorized
-          </h1>
-          <p className="text-white/60 text-center max-w-md">
-            Please log in to unlock this page and continue using Cryphos.
-          </p>
-          <div className="flex gap-3 mt-4">
-            <Link
-              href="/login"
-              className="px-6 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold transition hover:bg-[#d7a8ff] hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus-visible:ring focus-visible:ring-[#e3b8ff]/60"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/register"
-              className="px-6 py-3 rounded-xl border border-white/15 bg-white/5 text-white font-medium hover:bg-white/10 transition"
-            >
-              Register
-            </Link>
-          </div>
+        <Image
+          src="/padlock.png"
+          alt="Locked"
+          width={220}
+          height={220}
+          className="drop-shadow-[0_0_25px_rgba(227,184,255,0.25)]"
+        />
+
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mt-6">
+          You are not authorized
+        </h1>
+        <p className="text-white/60 text-center max-w-md mt-2">
+          Please log in to unlock this page.
+        </p>
+
+        <div className="flex gap-3 mt-5">
+          <Link
+            href="/login"
+            className="px-6 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold hover:bg-[#d7a8ff] transition"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/register"
+            className="px-6 py-3 rounded-xl border border-white/15 bg-white/5 text-white hover:bg-white/10 transition"
+          >
+            Register
+          </Link>
         </div>
       </div>
     );
   }
 
+  // Loading state
   if (billing.loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0f1115] text-zinc-100">
-        <div className="animate-pulse text-white/70">
-          Loading your subscription...
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0f1115] text-white/70 animate-pulse">
+        Loading your subscription...
       </div>
     );
   }
 
+  // No subscription → Paywall
   if (!billing.isActive) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f1115] text-zinc-100 px-6">
         <Snackbar data={snackData} />
 
-        <div className="max-w-lg w-full rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-[0_10px_60px_-20px_rgba(0,0,0,0.6)]">
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-center">
+        <div className="max-w-lg w-full rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-lg">
+          <h1 className="text-3xl font-extrabold text-center">
             Unlock Cryphos Bot Factory
           </h1>
-          <p className="mt-3 text-white/70 text-center">
-            Create and run automated trading strategies.
-            <br />
-            Activate your subscription to start building bots.
-          </p>
 
-          {billing.status && (
-            <p className="mt-2 text-xs text-center text-white/40">
-              Current status:{" "}
-              <span className="font-mono">{billing.status}</span>
-            </p>
-          )}
+          <p className="mt-3 text-white/70 text-center">
+            Create and run automated crypto strategies.
+          </p>
 
           <div className="mt-6 flex justify-center">
             <button
               onClick={handleSubscribe}
-              className="px-8 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold hover:bg-[#d7a8ff] hover:-translate-y-0.5 active:translate-y-0 transition shadow-lg"
+              className="px-8 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold hover:bg-[#d7a8ff] transition"
             >
               Subscribe with Stripe
             </button>
           </div>
 
           <p className="mt-4 text-xs text-center text-white/40">
-            Secure payments powered by Stripe. Cancel anytime.
+            Secure payments powered by Stripe.
           </p>
         </div>
       </div>
     );
   }
 
+  /* -----------------------------------------------------------
+     🚫 USER ALREADY HAS 1 BOT
+  ----------------------------------------------------------- */
+  if (billing.bots_count > 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f1115] text-zinc-100 px-6">
+        <Snackbar data={snackData} />
+
+        <div className="max-w-lg w-full rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-lg text-center">
+          <h1 className="text-3xl font-extrabold">Bot Limit Reached</h1>
+
+          <p className="mt-3 text-white/70">
+            Your current subscription allows <strong>1 bot</strong> per user.
+          </p>
+
+          <p className="mt-1 text-white/50 text-sm">
+            You already have an active bot running.
+          </p>
+
+          <div className="mt-6">
+            <Link
+              href="/bots"
+              className="px-6 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold hover:bg-[#d7a8ff] transition"
+            >
+              Go to My Bot
+            </Link>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  /* -----------------------------------------------------------
+     ✅ USER CAN CREATE A BOT (0 bots)
+  ----------------------------------------------------------- */
   return (
     <div className="relative min-h-screen bg-[#0f1115] text-zinc-100">
       <Snackbar data={snackData} />
 
-      <div className="mx-auto w/full max-w-6xl px-6 py-10">
-        <header className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-            {stepTitles[step]}
+      <div className="mx-auto w-full max-w-6xl px-6 py-10">
+        {/* HEADER */}
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-extrabold tracking-tight">
+            {titles[step]}
           </h1>
-          <p className="mt-2 text-white/70">
-            Build your strategy in three quick steps.
-          </p>
+          <p className="mt-2 text-white/70">Build your strategy in 3 steps.</p>
 
+          {/* Progress bar */}
           <div className="mx-auto mt-6 w-full max-w-2xl">
-            <div
-              className="mb-2 grid text-[11px] text-white/70"
-              style={{
-                gridTemplateColumns: `repeat(${totalSteps}, minmax(0,1fr))`,
-              }}
-            >
-              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((n) => (
-                <div key={n} className="truncate">
-                  {stepTitles[n]}
-                </div>
+            <div className="flex justify-between text-[11px] text-white/70 mb-2">
+              {Object.values(titles).map((t, i) => (
+                <span key={i}>{t}</span>
               ))}
             </div>
 
             <div className="relative h-2 overflow-hidden rounded-full border border-white/10 bg-white/5">
-              {segments.map((n) => (
-                <span
-                  key={n}
-                  className="absolute top-0 bottom-0 w-px bg-white/15"
-                  style={{ left: `${(n / totalSteps) * 100}%` }}
-                  aria-hidden="true"
-                />
-              ))}
               <div
-                className="h-full rounded-full bg-[#e3b8ff] transition-[width] duration-500"
+                className="absolute top-0 bottom-0 bg-[#e3b8ff] rounded-full transition-all duration-300"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
 
-            <div className="mt-2 text-center text-white/60 text-sm">
-              Step {clamped} of {totalSteps}
+            <div className="text-center text-white/60 text-sm mt-2">
+              Step {step} of {totalSteps}
             </div>
           </div>
         </header>
 
+        {/* MAIN WIZARD */}
         <motion.div
-          initial={{ opacity: 0, y: 8, scale: 0.995 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.35 }}
-          className="rounded-[28px] border border-white/10 bg-white/8 shadow-[0_10px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="rounded-[28px] overflow-hidden border border-white/10 bg-white/8 backdrop-blur-xl shadow-xl"
         >
-          <div className="p-6 md:p-10">
-            <div className="min-h-[500px]">
-              {step === 1 ? (
-                <AssetsBlock
-                  setStep={setStep}
-                  step={step}
-                  selectedSymbols={selectedSymbols}
-                  setSelectedSymbols={setSelectedSymbols}
-                  setBotSettings={setBotSettings}
-                  botSettings={botSettings}
-                />
-              ) : step === 2 ? (
-                <ConfigureBot
-                  step={step}
-                  setStep={setStep}
-                  botSettings={botSettings}
-                  setBotSettings={setBotSettings}
-                />
-              ) : (
-                <ConfigureTg
-                  tgNickname={tgNickname}
-                  step={step}
-                  setStep={setStep}
-                  onCreateBot={() =>
-                    CreateBot(botSettings, setSuccess, setError)
-                  }
-                  setTgNickname={setTgNickname}
-                />
-              )}
-            </div>
+          <div className="p-6 md:p-10 min-h-[500px]">
+            {step === 1 ? (
+              <AssetsBlock
+                step={step}
+                setStep={setStep}
+                selectedSymbols={selectedSymbols}
+                setSelectedSymbols={setSelectedSymbols}
+                botSettings={botSettings}
+                setBotSettings={setBotSettings}
+              />
+            ) : step === 2 ? (
+              <ConfigureBot
+                step={step}
+                setStep={setStep}
+                botSettings={botSettings}
+                setBotSettings={setBotSettings}
+              />
+            ) : (
+              <ConfigureTg
+                step={step}
+                setStep={setStep}
+                tgNickname={tgNickname}
+                setTgNickname={setTgNickname}
+                onCreateBot={() => CreateBot(botSettings, () => {}, setError)}
+              />
+            )}
           </div>
 
           <div className="px-6 md:px-10 py-5 border-t border-white/10 bg-white/5">
-            <div className="flex items-center justify-center">
-              <div className="text-white/60 text-sm">
-                Step {step} of {totalSteps}
-              </div>
+            <div className="text-center text-white/60 text-sm">
+              Step {step} of {totalSteps}
             </div>
           </div>
         </motion.div>
