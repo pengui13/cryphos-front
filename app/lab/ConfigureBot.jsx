@@ -2,18 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 import RsiSettings from "./RsiSettings";
-import MaSettings from "./MaSettings";
-// import FGSettings from "./FGSettings";
-import SrSettings from "./SrSettings"; // ⬅️ новый модуль S/R
 
 export default function ConfigureBot({
   botSettings,
   setBotSettings,
   step,
   setStep,
+  onCreateBot,
 }) {
+  const router = useRouter();
+  const [creating, setCreating] = useState(false);
+
   /* ===================== RSI ===================== */
   const [rsiEnabled, setRsiEnabled] = useState(botSettings?.rsi?.enabled ?? true);
   const [rsiSettings, setRsiSettings] = useState({
@@ -23,91 +25,38 @@ export default function ConfigureBot({
     intervals: botSettings?.rsi?.intervals ?? ["1m"],
   });
 
-  /* ===================== EMA / MA ===================== */
-  const [maEnabled, setMaEnabled] = useState(botSettings?.ma?.enabled ?? false);
-  const [maSettings, setMaSettings] = useState({
-    period:    botSettings?.ma?.period    ?? 20,
-    intervals: botSettings?.ma?.intervals ?? ["1m"],
-  });
-
-  /* ===================== Fear & Greed (опционально) ===================== */
-  const [fgEnabled, setFgEnabled] = useState(botSettings?.fg?.enabled ?? false);
-  const [fgSettings, setFgSettings] = useState({
-    lower:    botSettings?.fg?.lower    ?? 20,
-    upper:    botSettings?.fg?.upper    ?? 80,
-    lookback: botSettings?.fg?.lookback ?? 2,
-  });
-
-  /* ===================== S/R (Support / Resistance) ===================== */
-  const [srEnabled, setSrEnabled] = useState(botSettings?.sr?.enabled ?? true);
-  const [srSettings, setSrSettings] = useState({
-    mode:            botSettings?.sr?.mode            ?? "both",      // "rolling" | "pivots" | "both"
-    intervals:       botSettings?.sr?.intervals       ?? ["5m","15m","1h"],
-    lookback:        botSettings?.sr?.lookback        ?? 50,
-    levels_count:    botSettings?.sr?.levels_count    ?? 6,
-    zone_mode:       botSettings?.sr?.zone_mode       ?? "atr",       // "atr" | "fixed"
-    atr_period:      botSettings?.sr?.atr_period      ?? 14,
-    atr_mult:        botSettings?.sr?.atr_mult        ?? 0.75,
-    fixed_width:     botSettings?.sr?.fixed_width     ?? 0.002,       // 0.2% от цены
-    merge_dist_atr:  botSettings?.sr?.merge_dist_atr  ?? 0.5,
-    pivot_type:      botSettings?.sr?.pivot_type      ?? "classic",   // "classic" | "fibo" | "woodie" | "camarilla"
-    pivot_tf:        botSettings?.sr?.pivot_tf        ?? "daily",     // "daily" | "weekly" | "monthly"
-    vwap_enabled:    botSettings?.sr?.vwap_enabled    ?? true,
-    vwap_bands:      botSettings?.sr?.vwap_bands      ?? 1,
-  });
-
   /* ===================== Any enabled? ===================== */
-  const anyEnabled = useMemo(
-    () => rsiEnabled || maEnabled || fgEnabled || srEnabled,
-    [rsiEnabled, maEnabled, fgEnabled, srEnabled]
-  );
+  const anyEnabled = useMemo(() => rsiEnabled, [rsiEnabled]);
 
   /* ===================== Persist → parent JSON ===================== */
   useEffect(() => {
     setBotSettings((prev) => {
       const next = { ...prev };
 
-      // RSI
       if (rsiEnabled) next.rsi = { ...rsiSettings, enabled: true };
       else if (next.rsi) delete next.rsi;
 
-      // MA
-      if (maEnabled) next.ma = { ...maSettings, enabled: true };
-      else if (next.ma) delete next.ma;
-
-      // FG
-      if (fgEnabled) next.fg = { ...fgSettings, enabled: true, type: "FG" };
-      else if (next.fg) delete next.fg;
-
-      // S/R
-      if (srEnabled) next.sr = { ...srSettings, enabled: true, type: "SR" };
-      else if (next.sr) delete next.sr;
-
       return next;
     });
-  }, [
-    rsiEnabled, rsiSettings,
-    maEnabled,  maSettings,
-    fgEnabled,  fgSettings,
-    srEnabled,  srSettings,
-    setBotSettings,
-  ]);
+  }, [rsiEnabled, rsiSettings, setBotSettings]);
 
   /* ===================== Step controls ===================== */
   const handleBack = () => setStep?.(Math.max(1, (step || 2) - 1));
-  const handleNext = () => {
-    if (!anyEnabled) return;
-    setStep?.((step || 2) + 1);
+
+  const handleCreateBot = async () => {
+    if (!anyEnabled || creating) return;
+    setCreating(true);
+    try {
+      await onCreateBot?.();
+      router.push("/bots");
+    } catch (err) {
+      console.error(err);
+      setCreating(false);
+    }
   };
 
   /* ===================== UI helpers ===================== */
-  const enabledBadges = [
-    srEnabled && "S/R",
-    rsiEnabled && "RSI",
-    maEnabled && "EMA",
-    fgEnabled && "FG",
-    // bbEnabled && "BB", // если вернёте BB
-  ].filter(Boolean);
+  const enabledBadges = [rsiEnabled && "RSI"].filter(Boolean);
 
   return (
     <motion.div
@@ -147,16 +96,6 @@ export default function ConfigureBot({
 
       {/* ===== Sections ===== */}
       <div className="grid grid-cols-1 gap-6">
-        {/* S/R */}
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-          <SrSettings
-            enabled={srEnabled}
-            setEnabled={setSrEnabled}
-            settings={srSettings}
-            setSettings={setSrSettings}
-          />
-        </section>
-
         {/* RSI */}
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
           <RsiSettings
@@ -168,35 +107,14 @@ export default function ConfigureBot({
             setSettings={setRsiSettings}
           />
         </section>
-
-        {/* MA */}
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-          <MaSettings
-            enabled={maEnabled}
-            setEnabled={setMaEnabled}
-            settings={maSettings}
-            setSettings={setMaSettings}
-          />
-        </section>
-
-        {/* FG (если нужно — раскомментируйте секцию и импорт) */}
-        {/*
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-          <FGSettings
-            enabled={fgEnabled}
-            setEnabled={setFgEnabled}
-            settings={fgSettings}
-            setSettings={setFgSettings}
-          />
-        </section>
-        */}
       </div>
 
       {/* ===== Footer nav ===== */}
       <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-4">
         <button
           onClick={handleBack}
-          className="rounded-2xl border border-white/15 bg-white/5 px-5 py-2.5 text-white transition hover:bg-white/10"
+          disabled={creating}
+          className="rounded-2xl border border-white/15 bg-white/5 px-5 py-2.5 text-white transition hover:bg-white/10 disabled:opacity-50"
         >
           ← Back
         </button>
@@ -210,16 +128,16 @@ export default function ConfigureBot({
         </div>
 
         <button
-          onClick={handleNext}
-          disabled={!anyEnabled}
+          onClick={handleCreateBot}
+          disabled={!anyEnabled || creating}
           className={`rounded-2xl px-6 py-2.5 font-semibold transition-[transform,background,box-shadow]
-            ${anyEnabled
+            ${anyEnabled && !creating
               ? "bg-[#e3b8ff] text-black shadow-[0_12px_30px_-10px_rgba(227,184,255,0.6)] hover:-translate-y-0.5 hover:bg-[#d7a8ff] focus:outline-none focus-visible:ring focus-visible:ring-[#e3b8ff]/40 active:translate-y-0"
               : "bg-white/10 text-white/50 cursor-not-allowed"}`}
         >
-          Continue →
+          {creating ? "Creating..." : "Create Bot →"}
         </button>
       </div>
     </motion.div>
   );
-}
+} 

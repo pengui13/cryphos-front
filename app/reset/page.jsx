@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import SleekSnackbar from "../components/Snackbar";
 
-// Shared carousel for branding
 const slides = [
   { src: "/hero-1.jpg", caption: "Reset and get back on track." },
   { src: "/hero-2.png", caption: "Your security, simplified." },
@@ -53,7 +52,6 @@ function Carousel({ interval = 4500 }) {
         </motion.div>
       </AnimatePresence>
 
-      {/* Back link */}
       <div className="pointer-events-none absolute left-4 top-4">
         <Link
           href="/"
@@ -67,7 +65,6 @@ function Carousel({ interval = 4500 }) {
   );
 }
 
-// password strength bar
 function Strength({ value = "" }) {
   const len = value.length;
   const variety =
@@ -88,7 +85,7 @@ function Strength({ value = "" }) {
 
 export default function Reset() {
   const router = useRouter();
-  const [step, setStep] = useState("start"); // start → verify
+  const [step, setStep] = useState("start");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -113,29 +110,6 @@ export default function Reset() {
     setSnackbarData({ visible: true, status: "error", info: msg });
   };
 
-  const api = {
-    start: async ({ email }) => {
-      const res = await fetch("https://cryphos.com/api/auth/reset/start/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw data || { detail: "Reset request failed" };
-      return data;
-    },
-    verify: async ({ email, code, password, confirm }) => {
-      const res = await fetch("https://cryphos.com/api/auth/reset/verify/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code, password, password2: confirm }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw data || { detail: "Reset failed" };
-      return data;
-    },
-  };
-
   const handleStart = async (e) => {
     e.preventDefault();
     if (!emailOk(email)) {
@@ -144,9 +118,19 @@ export default function Reset() {
     }
     setLoading(true);
     try {
-      await api.start({ email });
+      const res = await fetch("http://127.0.0.1:8000/api/auth/reset/start/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      
+      if (!res.ok) {
+        throw data || { detail: "Failed to send reset code" };
+      }
+      
       setStep("verify");
-      setSnackbarData({ visible: true, status: "success", info: "Reset code sent" });
+      setSnackbarData({ visible: true, status: "success", info: "Reset code sent to your Telegram" });
     } catch (err) {
       showError(err, "Failed to send reset code");
     } finally {
@@ -164,11 +148,31 @@ export default function Reset() {
       setSnackbarData({ visible: true, status: "error", info: "Code should be 6 digits" });
       return;
     }
+    if (password.length < 6) {
+      setSnackbarData({ visible: true, status: "error", info: "Password must be at least 6 characters" });
+      return;
+    }
+    
     setLoading(true);
     try {
-      await api.verify({ email, code: code.trim(), password, confirm });
-      setSnackbarData({ visible: true, status: "success", info: "Password reset successful" });
-      setTimeout(() => router.push("/login"), 1000);
+      const res = await fetch("http://127.0.0.1:8000/api/auth/reset/verify/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email, 
+          code: code.trim(), 
+          password, 
+          password2: confirm 
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      
+      if (!res.ok) {
+        throw data || { detail: "Reset failed" };
+      }
+      
+      setSnackbarData({ visible: true, status: "success", info: "Password reset! Redirecting to login…" });
+      setTimeout(() => router.push("/login"), 1200);
     } catch (err) {
       showError(err, "Invalid code or password");
     } finally {
@@ -200,8 +204,8 @@ export default function Reset() {
               </h1>
               <p className="mt-1 text-white/70">
                 {step === "start"
-                  ? "Enter your email to receive a reset code."
-                  : `We sent a 6-digit code to ${email}`}
+                  ? "Enter your email — we'll send a code to your Telegram."
+                  : "Check your Telegram for the 6-digit code."}
               </p>
             </header>
 
@@ -217,6 +221,20 @@ export default function Reset() {
                     className="w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-white placeholder-white/40 outline-none transition focus:border-[#e3b8ff]/40 focus:ring-2 focus:ring-[#e3b8ff]/30"
                   />
                 </div>
+
+                {/* Info box */}
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">📱</span>
+                    <div>
+                      <p className="text-sm text-white/80">Reset code via Telegram</p>
+                      <p className="text-xs text-white/50 mt-1">
+                        Make sure you have Telegram connected to your account in Settings.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -224,6 +242,7 @@ export default function Reset() {
                 >
                   {loading ? "Sending…" : "Send reset code"}
                 </button>
+                
                 <p className="text-sm text-white/60">
                   Remembered?{" "}
                   <Link href="/login" className="text-[#e3b8ff] hover:underline">
@@ -232,7 +251,17 @@ export default function Reset() {
                 </p>
               </form>
             ) : (
-              <form className="grid gap-7" onSubmit={handleVerify}>
+              <form className="grid gap-6" onSubmit={handleVerify}>
+                {/* Telegram hint */}
+                <div className="rounded-xl border border-[#e3b8ff]/20 bg-[#e3b8ff]/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">✨</span>
+                    <p className="text-sm text-[#e3b8ff]">
+                      Check your Telegram for a message from @cryphos_bot
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="mb-1 block text-sm text-white/70">Verification code</label>
                   <input
@@ -294,6 +323,20 @@ export default function Reset() {
                 >
                   {loading ? "Resetting…" : "Reset password"}
                 </button>
+
+                <p className="text-sm text-white/60">
+                  Wrong email?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("start");
+                      setCode("");
+                    }}
+                    className="text-[#e3b8ff] hover:underline"
+                  >
+                    Go back
+                  </button>
+                </p>
               </form>
             )}
           </motion.section>

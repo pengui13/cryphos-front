@@ -1,4 +1,3 @@
-// /api/ApiWrapper.jsx
 "use client";
 
 import Cookies from "universal-cookie";
@@ -13,20 +12,20 @@ const IntervalsMapping = {
 };
 const cookies = new Cookies();
 
-export const BASE_URL = "https://cryphos.com/api/";
-export const MEDIA_URL = "https://cryphos.com";
-export const WEBSOCKET_URL = "ws://cryphos.com/ws/";
+export const BASE_URL = "http://127.0.0.1:8000/api/";
+export const MEDIA_URL = "http://127.0.0.1:8000";
+export const WEBSOCKET_URL = "http. ://127.0.0.1:8000/ws/";
 export const BASE_FRONT = "http://localhost:3000/";
 
-// Helpers
+
 function getCookieValue(name) {
   return cookies.get(name);
 }
+
 function setCookieValue(name, value) {
   cookies.set(name, value, { path: "/", sameSite: "lax" });
 }
 
-// Try to refresh JWT
 async function refreshToken() {
   const refresh = getCookieValue("refresh");
   if (!refresh) return null;
@@ -294,6 +293,27 @@ export async function RequestBotVerification(botId) {
     });
   });
 }
+export async function AddTelegram(nickname) {
+  return new Promise((resolve, reject) => {
+    apiRequest({
+      endpoint: `${BASE_URL}bots/add_telegram/`,
+      method: "POST",
+      body: { nickname },
+      onSuccess: (data) => resolve(data),
+      onError: (err) => reject(err),
+    });
+  });
+}
+export async function GetTelegramInfo() {
+  return new Promise((resolve, reject) => {
+    apiRequest({
+      endpoint: `${BASE_URL}bots/get_tg_info/`,
+      method: "GET",
+      onSuccess: (data) => resolve(data),
+      onError: (err) => reject(err),
+    });
+  });
+}
 
 export async function TogglePublishing(botId, setInfo) {
   apiRequest({
@@ -360,6 +380,7 @@ export async function GetBots(setBots) {
     onError: (error) => console.error("Fetching user profile failed", error),
   });
 }
+
 export async function DeleteBots(id) {
   return apiRequest({
     endpoint: `${BASE_URL}bots/delete_bot/${id}/`,

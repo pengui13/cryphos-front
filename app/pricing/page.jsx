@@ -48,13 +48,6 @@ export default function Pricing() {
               <p className="text-xs text-slate-500 mt-2">Billed monthly</p>
             </div>
 
-            {/* CTA Button */}
-            <div className="px-8 py-6">
-              <button className="w-full py-3 px-4 rounded-lg font-medium bg-white text-black hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
-                Get Started
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
 
             {/* Features */}
             <div className="px-8 pb-8 space-y-4">

@@ -4,6 +4,12 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
+
+const Spline = dynamic(
+  () => import("@splinetool/react-spline"),
+  { ssr: false }
+);
 
 function TypingEffect({ text, speed = 90 }) {
   const [displayed, setDisplayed] = useState("");
@@ -144,6 +150,17 @@ export default function Home() {
               </Link>
             </motion.div>
           </motion.div>
+     <motion.div 
+  initial={{ opacity: 0, x: 30 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.8 }}
+  className="relative lg:col-span-6 order-first lg:order-last h-[500px]"
+>
+  <Spline
+    scene="https://prod.spline.design/C8Y5-lItEldvsbRL/scene.splinecode"
+    className="w-full h-full"
+  />
+</motion.div>
 
           {/* RIGHT: planet art */}
           <motion.div 
