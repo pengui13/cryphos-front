@@ -12,80 +12,84 @@ export default function SleekSnackbar({ data, onClose }) {
       const t = setTimeout(() => {
         setVisible(false);
         onClose?.();
-      }, 2400);
+      }, 2600); // shorter, crisp
       return () => clearTimeout(t);
     }
   }, [data, onClose]);
 
-  // pastel accents
-  const buyAccent = "#5CE1E6";
-  const sellAccent = "#FF8C94";
-  const accent = data?.side === "buy" || data?.status ? buyAccent : sellAccent;
+  // Cryphos palette
+  const buyAccent = "#6366f1"; // Indigo
+  const sellAccent = "#ec4899"; // Pink
+  const successAccent = "#10b981"; // Emerald
+  const neutralAccent = "#b48efc"; // Lilac
 
-  // title & message
-  const title = data?.side
-    ? `${data.side.charAt(0).toUpperCase() + data.side.slice(1)} ${
-        data.symbol
-      }/USDT`
-    : data?.status
-    ? "Success"
-    : "Failure";
+  const accent =
+    data?.side === "buy"
+      ? buyAccent
+      : data?.side === "sell"
+      ? sellAccent
+      : data?.status
+      ? successAccent
+      : neutralAccent;
+
   const message =
     data?.info ??
     (data?.side
-      ? `Price: ${data.price} · Amount: ${data.amount}`
+      ? `${data.side === "buy" ? "Bought" : "Sold"} ${data.amount} ${data.symbol} @ ${data.price}`
       : "Operation completed");
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 20, opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="fixed bottom-6 right-6 z-50 w-80 bg-[#1B1F23] border border-[#2E3136] rounded-full overflow-hidden shadow-lg"
+          initial={{ y: 24, opacity: 0, scale: 0.98 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 24, opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+          className="fixed bottom-7 right-7 z-50 w-[320px]"
         >
-          {/* progress bar */}
-          <motion.div
-            className="h-1 w-full"
-            style={{ backgroundColor: accent }}
-            initial={{ scaleX: 1 }}
-            animate={{ scaleX: 0 }}
-            transition={{ duration: 2.4, ease: "linear" }}
-            transformOrigin="left"
-          />
-
-          <div className="flex items-center gap-3 px-4 py-3">
-            {/* status dot */}
-            <span
-              className="flex-shrink-0 w-3 h-3 rounded-full"
+          <div className="relative overflow-hidden rounded-xl border border-white/10 shadow-lg backdrop-blur-md bg-[#121216]/80">
+            {/* Accent bar (subtle, 2px) */}
+            <motion.div
+              className="h-[2px] w-full"
               style={{ backgroundColor: accent }}
+              initial={{ scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: 2.4, ease: "linear" }}
+              transformOrigin="left"
             />
 
-            {/* text */}
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white">{title}</p>
-              <p className="text-xs text-gray-400">{message}</p>
-            </div>
+            {/* Content */}
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <span
+                className="flex-shrink-0 w-2 h-2 rounded-full"
+                style={{ backgroundColor: accent }}
+              />
 
-            {/* close button */}
-            <button
-              onClick={() => setVisible(false)}
-              className="flex-shrink-0 p-1 rounded-full hover:bg-[#2E3136]"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-4 h-4 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
+              <div className="flex-1">
+                <p className="text-white text-sm font-medium tracking-tight leading-snug">
+                  {message}
+                </p>
+              </div>
+
+              {/* Close button (super minimal) */}
+              <button
+                onClick={() => setVisible(false)}
+                className="flex-shrink-0 p-1 rounded hover:bg-white/5 transition"
               >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-3.5 h-3.5 text-white/50 hover:text-white/80"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
           </div>
         </motion.div>
       )}

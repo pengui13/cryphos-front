@@ -1,25 +1,164 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-site: var(--font-space);
+  --bkg: black;
+  --bkg-surface: #131823;
+  --bkg-elevated: #1A1F2E;
+  --bkg-hover: #252B3A;
+  
+  /* === SIGNATURE OWL ORANGE === */
+  --primary: #6a2e8e;
+  --primary-hover: #FF8A65;
+  --primary-dark: #E64A19;
+  
+  /* === TRADING STATUS COLORS === */
+  --success: #00E676;
+  --success-dark: #00C853;
+  --danger: #FF1744;
+  --danger-dark: #D50000;
+  
+  /* === PREMIUM & ACCENTS === */
+  --gold: #FFD700;
+  --gold-dark: #FFA000;
+  --info: #00D4FF;
+  --info-dark: #0091EA;
+  
+  /* === TEXT HIERARCHY === */
+  --text-primary: #FFFFFF;
+  --text-secondary: #E2E8F0;
+  --text-muted: #94A3B8;
+  --text-disabled: #64748B;
+  
+  /* === SPECIAL EFFECTS === */
+  --shimmer: #252B3A;
+  --graphite: #2A3441;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --color-primary: #6a2e8e;
+  --color-bkg: black;
+  --color-log-bkg: #310447;
+
+  --color-bkg-surface: #131823;
+  /* Add all your custom colors here */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+
+  body {
+    background: #0f1115;
+    color: var(--text-primary);
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, Segoe UI,
+      Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-family: var(--font-space), var(--font-inter), -apple-system,
+      BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    letter-spacing: -0.02em;
+  }
+.bg-primary-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+}
+
+.bg-success-gradient {
+  background: linear-gradient(135deg, var(--success) 0%, #26C6DA 100%);
+}
+
+.bg-danger-gradient {
+  background: linear-gradient(135deg, var(--danger) 0%, #FF6B9D 100%);
+}
+
+.bg-background-gradient {
+  background: linear-gradient(135deg, var(--bkg) 0%, var(--bkg-surface) 50%, var(--bkg-elevated) 100%);
+}
+
+/* Glow effects */
+.glow-orange {
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(255, 23, 68, 0.3);
+}
+
+/* Card shadows */
+.shadow-card {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.shadow-card-hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 107, 53, 0.1);
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 107, 53, 0.6), 0 0 60px rgba(255, 107, 53, 0.2);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@keyframes profit-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 230, 118, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 230, 118, 0.6);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-profit-pulse {
+  animation: profit-pulse 1.5s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Focus states */
+input:focus, 
+button:focus, 
+textarea:focus, 
+select:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: var(--primary);
+  ring-opacity: 0.5;
+}
+
+
+
+
+
+/* Selection styling */
+::selection {
+  background: var(--primary);
+  color: white;
+}
+button{
+  cursor: pointer;
 }
