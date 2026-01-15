@@ -12,10 +12,10 @@ const IntervalsMapping = {
 };
 const cookies = new Cookies();
 
-export const BASE_URL = "http://127.0.0.1:8000/api/";
-export const MEDIA_URL = "http://127.0.0.1:8000";
-export const WEBSOCKET_URL = "http. ://127.0.0.1:8000/ws/";
-export const BASE_FRONT = "http://localhost:3000/";
+export const BASE_URL = "http://51.68.190.16/api/";
+export const MEDIA_URL = "http://51.68.190.16/";
+export const WEBSOCKET_URL = "http://51.68.190.16/ws/";
+export const BASE_FRONT = "http://51.68.190.16/";
 
 
 function getCookieValue(name) {
