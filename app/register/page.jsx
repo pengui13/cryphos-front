@@ -125,7 +125,7 @@ export default function Register() {
 
   setLoading(true);
   try {
-    const res = await fetch("http://51.68.190.16/api/auth/register/", {
+    const res = await fetch("https://cryphos.com/api/auth/register/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

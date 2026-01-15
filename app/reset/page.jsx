@@ -118,7 +118,7 @@ export default function Reset() {
     }
     setLoading(true);
     try {
-      const res = await fetch("http://51.68.190.16/api/auth/reset/start/", {
+      const res = await fetch("https://cryphos.com/api/auth/reset/start/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -155,7 +155,7 @@ export default function Reset() {
     
     setLoading(true);
     try {
-      const res = await fetch("http://51.68.190.16/api/auth/reset/verify/", {
+      const res = await fetch("https://cryphos.com/api/auth/reset/verify/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
