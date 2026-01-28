@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import SleekSnackbar from "../components/Snackbar";
-
+import {BASE_URL} from '../api/ApiWrapper'
 const slides = [
   { src: "/hero-1.jpg", caption: "Capture alpha, not noise." },
   { src: "/hero-2.png", caption: "Clarity in every trend." },
@@ -125,7 +125,7 @@ export default function Register() {
 
   setLoading(true);
   try {
-    const res = await fetch("https://cryphos.com/api/auth/register/", {
+    const res = await fetch(`${BASE_URL}auth/register/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

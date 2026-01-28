@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import SleekSnackbar from "../components/Snackbar";
+import {BASE_URL} from '../api/ApiWrapper'
 
 const slides = [
   { src: "/hero-1.jpg", caption: "Reset and get back on track." },
@@ -118,7 +119,7 @@ export default function Reset() {
     }
     setLoading(true);
     try {
-      const res = await fetch("https://cryphos.com/api/auth/reset/start/", {
+      const res = await fetch(`${BASE_URL}auth/reset/start/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -155,7 +156,7 @@ export default function Reset() {
     
     setLoading(true);
     try {
-      const res = await fetch("https://cryphos.com/api/auth/reset/verify/", {
+      const res = await fetch(`${BASE_URL}auth/reset/verify/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
