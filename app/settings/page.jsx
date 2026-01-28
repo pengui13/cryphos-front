@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import Snackbar from "../components/Snackbar";
-import { usePing } from "../layout";
+import { usePing } from "../providers";
 import { GetTelegramInfo, AddTelegram } from "../api/ApiWrapper";
 
 /** Small reusable copy chip (brand tinted) */

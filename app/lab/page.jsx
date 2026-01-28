@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { usePing } from "../layout";
+import { usePing } from "../providers";
 import { loadStripe } from "@stripe/stripe-js";
 import { useRouter } from "next/navigation";
 
