@@ -1,48 +1,43 @@
-// app/layout.js
 "use client";
-import React from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+
 import Footer from "./components/Footer";
 import Header from "./Header";
-import { useState, useEffect, useRef, createContext, useContext } from "react";
 import LogoSpinner from "./components/LogoSpinner";
 import { GetPing } from "./api/ApiWrapper";
-const PingContext = createContext(false);
-export const usePing = () => useContext(PingContext);
+
+import { PingProvider, LoadingProvider } from "./providers";
 
 const space = Space_Grotesk({
   variable: "--font-space",
   subsets: ["latin"],
-    display: "swap",
+  display: "swap",
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-    display: "swap",
+  display: "swap",
 });
-
-const LoadingContext = createContext(null);
-export const useLoading = () => {
-  const ctx = useContext(LoadingContext);
-  if (!ctx) throw new Error("useLoading must be used within RootLayout");
-  return ctx;
-};
 
 export default function RootLayout({ children }) {
   const MIN_SHOW_MS = 600;
-  const MAX_CAP_MS  = 2500;
-  const FADE_MS     = 220;
+  const MAX_CAP_MS = 2500;
+  const FADE_MS = 220;
 
   const [isShowingOverlay, setIsShowingOverlay] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const startRef = useRef(Date.now());
+
   const [ping, setPing] = useState(false);
 
   useEffect(() => {
     GetPing(setPing);
   }, []);
+
   useEffect(() => {
     let finished = false;
     const finish = () => {
@@ -100,11 +95,10 @@ export default function RootLayout({ children }) {
         <title>Cryphos</title>
         <link rel="preload" as="image" href="/logo.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
-
         <style>{`html,body{height:100%} body{margin:0;}`}</style>
       </head>
       <body className={`${inter.variable} ${space.variable} antialiased`}>
-        <LoadingContext.Provider value={loadingContextValue}>
+        <LoadingProvider value={loadingContextValue}>
           {isShowingOverlay && (
             <LogoSpinner size={100} logoSrc="/logo.png" fadingOut={isFadingOut} />
           )}
@@ -118,15 +112,13 @@ export default function RootLayout({ children }) {
             }}
             aria-busy={isShowingOverlay}
           >
-                    <PingContext.Provider value={ping}>
-
-            <Header ping={ping} />
-            {children}
-            <Footer />
-                    </PingContext.Provider>
-
-         </div>
-        </LoadingContext.Provider>
+            <PingProvider value={ping}>
+              <Header ping={ping} />
+              {children}
+              <Footer />
+            </PingProvider>
+          </div>
+        </LoadingProvider>
       </body>
     </html>
   );
