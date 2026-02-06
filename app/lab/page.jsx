@@ -41,95 +41,114 @@ function ResultModal({ isOpen, onClose, success, message }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
             onClick={onClose}
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", duration: 0.5 }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-[#16161f] p-6 shadow-2xl"
+            className="relative z-10 w-full max-w-md"
           >
-            {/* Icon */}
-            <div className="flex justify-center mb-4">
-              {success ? (
-                <div className="h-16 w-16 rounded-full bg-green-500/10 grid place-items-center">
-                  <svg
-                    className="h-8 w-8 text-green-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+            <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-white/[0.07] to-white/[0.02] blur-xl" />
+            <div className="relative rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent p-8 backdrop-blur-2xl shadow-2xl">
+              {/* Icon */}
+              <div className="flex justify-center mb-6">
+                {success ? (
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", delay: 0.1 }}
+                    className="h-20 w-20 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 grid place-items-center border border-green-500/20"
                   >
-                    <motion.path
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-              ) : (
-                <div className="h-16 w-16 rounded-full bg-red-500/10 grid place-items-center">
-                  <svg
-                    className="h-8 w-8 text-red-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                    <svg
+                      className="h-10 w-10 text-green-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <motion.path
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", delay: 0.1 }}
+                    className="h-20 w-20 rounded-full bg-gradient-to-br from-red-500/20 to-pink-500/20 grid place-items-center border border-red-500/20"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </div>
-              )}
-            </div>
+                    <svg
+                      className="h-10 w-10 text-red-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </motion.div>
+                )}
+              </div>
 
-            {/* Title */}
-            <h2 className="text-xl font-bold text-center text-white mb-2">
-              {success ? "Bot Created Successfully!" : "Creation Failed"}
-            </h2>
+              {/* Title */}
+              <h2 className="text-2xl font-bold text-center text-white mb-3">
+                {success ? "Bot Created!" : "Creation Failed"}
+              </h2>
 
-            {/* Message */}
-            <p className="text-white/60 text-center text-sm mb-6">
-              {success
-                ? "Your trading bot is now active and ready to analyze the market."
-                : message || "Something went wrong. Please try again."}
-            </p>
+              {/* Message */}
+              <p className="text-white/60 text-center leading-relaxed mb-8">
+                {success
+                  ? "Your trading bot is now active and analyzing markets 24/7."
+                  : message || "Something went wrong. Please try again."}
+              </p>
 
-            {/* Actions */}
-            <div className="flex gap-3">
-              {success ? (
-                <>
-                  <button
-                    onClick={() => router.push("/bots")}
-                    className="flex-1 rounded-xl bg-[#e3b8ff] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#d4a8ff]"
-                  >
-                    View My Bot
-                  </button>
-                  <button
+              {/* Actions */}
+              <div className="flex gap-3">
+                {success ? (
+                  <>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => router.push("/bots")}
+                      className="flex-1 rounded-2xl bg-white px-6 py-3.5 font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.2)] transition hover:shadow-[0_12px_32px_rgba(255,255,255,0.3)]"
+                    >
+                      View My Bots
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={onClose}
+                      className="rounded-2xl border border-white/10 bg-white/5 px-6 py-3.5 font-medium text-white/70 transition hover:bg-white/10"
+                    >
+                      Close
+                    </motion.button>
+                  </>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={onClose}
-                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/70 transition hover:bg-white/10"
+                    className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-6 py-3.5 font-medium text-white/70 transition hover:bg-white/10"
                   >
-                    Close
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={onClose}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/70 transition hover:bg-white/10"
-                >
-                  Try Again
-                </button>
-              )}
+                    Try Again
+                  </motion.button>
+                )}
+              </div>
             </div>
           </motion.div>
         </motion.div>
@@ -155,23 +174,14 @@ export default function BotsFactory() {
     bots_count: 0,
   });
 
-  // wizard state
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [selectedSymbols, setSelectedSymbols] = useState([]);
   const [step, setStep] = useState(1);
   const [botSettings, setBotSettings] = useState({});
   const [error, setError] = useState("");
 
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSuccess, setModalSuccess] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
-
-  const [balanceSettings, setBalanceSettings] = useState({
-    amount: "",
-    tpSlValues: [-50, 100],
-  });
 
   useEffect(() => {
     if (!ping) return;
@@ -237,12 +247,8 @@ export default function BotsFactory() {
     if (step === 2) {
       const noIndicators =
         !botSettings.rsi &&
-        !botSettings.ma &&
-        !botSettings.fg &&
-        !botSettings.obv &&
-        !botSettings.art &&
-        !botSettings.macd &&
-        !botSettings.bb;
+        !botSettings.bb &&
+        !botSettings.sr;
 
       if (noIndicators) {
         setError("Select at least one indicator");
@@ -272,14 +278,9 @@ export default function BotsFactory() {
   useEffect(() => {
     setBotSettings((prev) => ({
       ...prev,
-      name,
-      description,
       bot_assets: selectedSymbols,
-      portfolio_volume: balanceSettings.amount,
-      stop_loss: balanceSettings.tpSlValues[0],
-      take_profit: balanceSettings.tpSlValues[1],
     }));
-  }, [name, description, selectedSymbols, balanceSettings]);
+  }, [selectedSymbols]);
 
   const totalSteps = 2;
   const titles = {
@@ -292,113 +293,164 @@ export default function BotsFactory() {
 
   if (!ping) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f1115] text-zinc-100 px-6">
-        <Image
-          src="/padlock.png"
-          alt="Locked"
-          width={220}
-          height={220}
-          className="drop-shadow-[0_0_25px_rgba(227,184,255,0.25)]"
-        />
+      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 text-white">
+        {/* Ambient orb */}
+        <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/20 blur-[150px]" />
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative text-center"
+        >
+          <Image
+            src="/padlock.png"
+            alt="Locked"
+            width={180}
+            height={180}
+            className="mx-auto mb-8 drop-shadow-[0_0_40px_rgba(168,85,247,0.4)]"
+          />
 
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mt-6">
-          You are not authorized
-        </h1>
-        <p className="text-white/60 text-center max-w-md mt-2">
-          Please log in to unlock this page.
-        </p>
+          <h1 className="mb-3 bg-gradient-to-br from-white to-white/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent">
+            Authentication Required
+          </h1>
+          <p className="mx-auto max-w-md text-white/60">
+            Please log in to access the Bot Factory
+          </p>
 
-        <div className="flex gap-3 mt-5">
-          <Link
-            href="/login"
-            className="px-6 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold hover:bg-[#d7a8ff] transition"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/register"
-            className="px-6 py-3 rounded-xl border border-white/15 bg-white/5 text-white hover:bg-white/10 transition"
-          >
-            Register
-          </Link>
-        </div>
+          <div className="mt-8 flex justify-center gap-3">
+            <Link href="/login">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                className="rounded-2xl bg-white px-8 py-3 font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.2)] transition"
+              >
+                Log in
+              </motion.button>
+            </Link>
+            <Link href="/register">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                className="rounded-2xl border border-white/10 bg-white/5 px-8 py-3 font-semibold transition hover:bg-white/10"
+              >
+                Register
+              </motion.button>
+            </Link>
+          </div>
+        </motion.div>
       </div>
     );
   }
 
   if (billing.loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0f1115] text-white/70 animate-pulse">
-        Loading your subscription...
+      <div className="flex min-h-screen items-center justify-center bg-black text-white/70">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-purple-500" />
+          <div>Loading subscription status...</div>
+        </div>
       </div>
     );
   }
 
   if (!billing.isActive) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f1115] text-zinc-100 px-6">
+      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 text-white">
         <Snackbar data={snackData} />
+        
+        {/* Ambient orb */}
+        <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/20 blur-[150px]" />
 
-        <div className="max-w-lg w-full rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-lg">
-          <h1 className="text-3xl font-extrabold text-center">
-            Unlock Cryphos Bot Factory
-          </h1>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative w-full max-w-lg"
+        >
+          <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-white/[0.07] to-white/[0.02] blur-xl" />
+          <div className="relative rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent p-10 backdrop-blur-2xl shadow-2xl">
+            <h1 className="mb-3 text-center text-3xl font-bold">
+              Unlock Bot Factory
+            </h1>
+            <p className="mb-8 text-center text-white/60">
+              Subscribe to create automated trading strategies
+            </p>
 
-          <p className="mt-3 text-white/70 text-center">
-            Create and run automated crypto strategies.
-          </p>
-
-          <div className="mt-6 flex justify-center">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleSubscribe}
-              className="px-8 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold hover:bg-[#d7a8ff] transition"
+              className="w-full rounded-2xl bg-white px-8 py-4 font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.2)] transition hover:shadow-[0_12px_32px_rgba(255,255,255,0.3)]"
             >
               Subscribe with Stripe
-            </button>
-          </div>
+            </motion.button>
 
-          <p className="mt-4 text-xs text-center text-white/40">
-            Secure payments powered by Stripe.
-          </p>
-        </div>
+            <p className="mt-4 text-center text-xs text-white/40">
+              Secure payments powered by Stripe
+            </p>
+          </div>
+        </motion.div>
       </div>
     );
   }
 
   if (billing.bots_count > 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f1115] text-zinc-100 px-6">
+      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 text-white">
         <Snackbar data={snackData} />
+        
+        {/* Ambient orb */}
+        <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/20 blur-[150px]" />
 
-        <div className="max-w-lg w-full rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-lg text-center">
-          <h1 className="text-3xl font-extrabold">Bot Limit Reached</h1>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative w-full max-w-lg text-center"
+        >
+          <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-white/[0.07] to-white/[0.02] blur-xl" />
+          <div className="relative rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent p-10 backdrop-blur-2xl shadow-2xl">
+            <h1 className="mb-3 text-3xl font-bold">Bot Limit Reached</h1>
+            <p className="mb-2 text-white/60">
+              Your current plan allows <strong className="text-white">1 bot</strong>
+            </p>
+            <p className="mb-8 text-sm text-white/50">
+              You already have an active bot running
+            </p>
 
-          <p className="mt-3 text-white/70">
-            Your current subscription allows <strong>1 bot</strong> per user.
-          </p>
-
-          <p className="mt-1 text-white/50 text-sm">
-            You already have an active bot running.
-          </p>
-
-          <div className="mt-6">
-            <Link
-              href="/bots"
-              className="px-6 py-3 rounded-xl bg-[#e3b8ff] text-black font-semibold hover:bg-[#d7a8ff] transition"
-            >
-              Go to My Bot
+            <Link href="/bots">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="rounded-2xl bg-white px-8 py-3 font-semibold text-black shadow-[0_8px_24px_rgba(255,255,255,0.2)] transition"
+              >
+                View My Bots
+              </motion.button>
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen bg-[#0f1115] text-zinc-100">
-      <Snackbar data={snackData} />
+    <div className="relative min-h-screen bg-black text-white">
+      {/* Ambient background */}
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900 via-black to-black" />
       
-      {/* Result Modal */}
+      {/* Floating orbs */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <motion.div
+          animate={{ x: [0, 30, 0], y: [0, -30, 0] }}
+          transition={{ duration: 25, repeat: Infinity }}
+          className="absolute left-[20%] top-[10%] h-[400px] w-[400px] rounded-full bg-purple-500/15 blur-[120px]"
+        />
+        <motion.div
+          animate={{ x: [0, -30, 0], y: [0, 30, 0] }}
+          transition={{ duration: 30, repeat: Infinity }}
+          className="absolute right-[20%] bottom-[20%] h-[500px] w-[500px] rounded-full bg-pink-500/10 blur-[120px]"
+        />
+      </div>
+
+      <Snackbar data={snackData} />
       <ResultModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -406,83 +458,115 @@ export default function BotsFactory() {
         message={modalMessage}
       />
 
-      <div className="mx-auto w-full max-w-6xl flex flex-col items-center justify-center px-6 py-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center px-6 py-16">
         {/* HEADER */}
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold tracking-tight">
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12 w-full text-center"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 backdrop-blur-xl"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-purple-500" />
+            </span>
+            <span className="text-xs font-medium text-white/70">Bot Factory</span>
+          </motion.div>
+
+          <h1 className="mb-4 bg-gradient-to-br from-white to-white/60 bg-clip-text text-5xl font-bold tracking-tight text-transparent lg:text-6xl">
             {titles[step]}
           </h1>
-          <p className="mt-2 text-white/70">Build your strategy in 2 steps.</p>
+          <p className="text-lg text-white/60">Build your strategy in 2 simple steps</p>
 
-          {/* Progress bar */}
-          <div className="mx-auto mt-6 w-full max-w-2xl">
-            <div className="flex justify-between text-[11px] text-white/70 mb-2">
-              {Object.values(titles).map((t, i) => (
-                <span key={i}>{t}</span>
-              ))}
+          {/* Progress */}
+          <div className="mx-auto mt-10 w-full max-w-3xl">
+            <div className="mb-6 flex justify-between gap-4">
+              {Object.entries(titles).map(([stepNum, title], i) => {
+                const isActive = parseInt(stepNum) === step;
+                const isCompleted = parseInt(stepNum) < step;
+                return (
+                  <div key={i} className="flex flex-1 flex-col items-center text-center">
+                    <div className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                      isCompleted
+                        ? 'bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)]'
+                        : isActive
+                        ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-[0_0_30px_rgba(168,85,247,0.6)]'
+                        : 'border border-white/10 bg-white/5 text-white/40'
+                    }`}>
+                      {isCompleted ? '✓' : stepNum}
+                    </div>
+                    <div className={`text-sm font-medium transition-colors ${
+                      isActive ? 'text-white' : 'text-white/40'
+                    }`}>
+                      {title}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="relative h-2 overflow-hidden rounded-full border border-white/10 bg-white/5">
-              <div
-                className="absolute top-0 bottom-0 bg-[#e3b8ff] rounded-full transition-all duration-300"
-                style={{ width: `${progressPct}%` }}
+            <div className="relative h-2 overflow-hidden rounded-full bg-white/5">
+              <motion.div
+                className="absolute bottom-0 left-0 top-0 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.5)]"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPct}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
               />
             </div>
-
-            <div className="text-center text-white/60 text-sm mt-2">
-              Step {step} of {totalSteps}
-            </div>
           </div>
-        </header>
+        </motion.header>
 
+        {/* MAIN CONTENT */}
         <motion.div
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="rounded-[28px] overflow-hidden border w-full max-w-[900px] border-white/10 bg-white/[0.08] backdrop-blur-xl shadow-xl"
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-4xl"
         >
-          <div className="p-6 min-h-[500px] w-full">
-            {step === 1 ? (
-              <AssetsBlock
-                step={step}
-                setStep={setStep}
-                selectedSymbols={selectedSymbols}
-                setSelectedSymbols={setSelectedSymbols}
-                botSettings={botSettings}
-                setBotSettings={setBotSettings}
-              />
-            ) : (
-              <ConfigureBot
-                step={step}
-                setStep={setStep}
-                botSettings={botSettings}
-                setBotSettings={setBotSettings}
-                onCreateBot={() => {
-                  return new Promise((resolve, reject) => {
-                    CreateBot(
-                      botSettings,
-                      () => {
-                        setModalSuccess(true);
-                        setModalMessage("");
-                        setModalOpen(true);
-                        resolve();
-                      },
-                      (err) => {
-                        setModalSuccess(false);
-                        setModalMessage(err || "Failed to create bot");
-                        setModalOpen(true);
-                        reject(err);
-                      }
-                    );
-                  });
-                }}
-              />
-            )}
-          </div>
-
-          <div className="px-6 md:px-10 py-5 border-t border-white/10 bg-white/5">
-            <div className="text-center text-white/60 text-sm">
-              Step {step} of {totalSteps}
+          <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-white/[0.07] to-white/[0.02] blur-xl" />
+          <div className="relative overflow-hidden rounded-[32px] border border-white/[0.08] bg-gradient-to-br from-white/[0.05] to-transparent backdrop-blur-2xl shadow-2xl">
+            <div className="min-h-[600px] p-8">
+              {step === 1 ? (
+                <AssetsBlock
+                  step={step}
+                  setStep={handleStep}
+                  selectedSymbols={selectedSymbols}
+                  setSelectedSymbols={setSelectedSymbols}
+                  botSettings={botSettings}
+                  setBotSettings={setBotSettings}
+                />
+              ) : (
+                <ConfigureBot
+                  step={step}
+                  setStep={setStep}
+                  botSettings={botSettings}
+                  setBotSettings={setBotSettings}
+                  onCreateBot={() => {
+                    return new Promise((resolve, reject) => {
+                      CreateBot(
+                        botSettings,
+                        () => {
+                          setModalSuccess(true);
+                          setModalMessage("");
+                          setModalOpen(true);
+                          resolve();
+                        },
+                        (err) => {
+                          setModalSuccess(false);
+                          setModalMessage(err || "Failed to create bot");
+                          setModalOpen(true);
+                          reject(err);
+                        }
+                      );
+                    });
+                  }}
+                />
+              )}
             </div>
           </div>
         </motion.div>

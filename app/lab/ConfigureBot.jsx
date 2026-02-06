@@ -1,143 +1,176 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-
 import RsiSettings from "./RsiSettings";
+import BollingerBandsSettings from "./BollingerBandsSettings";
+import SupportResistanceSettings from "./SupportResistanceSettings";
 
 export default function ConfigureBot({
-  botSettings,
-  setBotSettings,
   step,
   setStep,
+  botSettings,
+  setBotSettings,
   onCreateBot,
 }) {
-  const router = useRouter();
-  const [creating, setCreating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
-  /* ===================== RSI ===================== */
-  const [rsiEnabled, setRsiEnabled] = useState(botSettings?.rsi?.enabled ?? true);
-  const [rsiSettings, setRsiSettings] = useState({
-    period:    botSettings?.rsi?.period    ?? 14,
-    max:       botSettings?.rsi?.max       ?? 70,
-    min:       botSettings?.rsi?.min       ?? 30,
-    intervals: botSettings?.rsi?.intervals ?? ["1m"],
-  });
+  // RSI state
+  const [rsiEnabled, setRsiEnabled] = useState(botSettings?.rsi ?? false);
+  const [rsiSettings, setRsiSettings] = useState(
+    botSettings?.rsiSettings ?? {}
+  );
 
-  /* ===================== Any enabled? ===================== */
-  const anyEnabled = useMemo(() => rsiEnabled, [rsiEnabled]);
+  // Bollinger Bands state
+  const [bbEnabled, setBbEnabled] = useState(botSettings?.bb ?? false);
+  const [bbSettings, setBbSettings] = useState(botSettings?.bbSettings ?? {});
 
-  /* ===================== Persist → parent JSON ===================== */
+  // Support & Resistance state
+  const [srEnabled, setSrEnabled] = useState(botSettings?.sr ?? false);
+  const [srSettings, setSrSettings] = useState(botSettings?.srSettings ?? {});
+
+  // Update parent settings whenever anything changes
   useEffect(() => {
-    setBotSettings((prev) => {
-      const next = { ...prev };
-
-      if (rsiEnabled) next.rsi = { ...rsiSettings, enabled: true };
-      else if (next.rsi) delete next.rsi;
-
-      return next;
-    });
-  }, [rsiEnabled, rsiSettings, setBotSettings]);
-
-  /* ===================== Step controls ===================== */
-  const handleBack = () => setStep?.(Math.max(1, (step || 2) - 1));
+    const updatedSettings = {
+      ...botSettings,
+      // Only include enabled indicators with their settings
+      ...(rsiEnabled && { rsi: rsiSettings }),
+      ...(bbEnabled && { bb: bbSettings }),
+      ...(srEnabled && { sr: srSettings }),
+    };
+    
+    // Remove disabled indicators from payload
+    if (!rsiEnabled) delete updatedSettings.rsi;
+    if (!bbEnabled) delete updatedSettings.bb;
+    if (!srEnabled) delete updatedSettings.sr;
+    
+    setBotSettings(updatedSettings);
+  }, [
+    rsiEnabled,
+    rsiSettings,
+    bbEnabled,
+    bbSettings,
+    srEnabled,
+    srSettings,
+  ]);
 
   const handleCreateBot = async () => {
-    if (!anyEnabled || creating) return;
-    setCreating(true);
+    // Check at least one indicator is enabled
+    if (!rsiEnabled && !bbEnabled && !srEnabled) {
+      alert("Please enable at least one indicator");
+      return;
+    }
+
+    setIsCreating(true);
     try {
-      await onCreateBot?.();
-      router.push("/bots");
+      await onCreateBot();
     } catch (err) {
       console.error(err);
-      setCreating(false);
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  /* ===================== UI helpers ===================== */
-  const enabledBadges = [rsiEnabled && "RSI"].filter(Boolean);
+  const enabledCount = [rsiEnabled, bbEnabled, srEnabled].filter(Boolean).length;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6, scale: 0.997 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.25 }}
-      className="flex flex-col w-full gap-6"
-    >
-      {/* ===== Header ===== */}
-      <div className="flex items-start justify-between rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-        <div>
-          <h2 className="text-[22px] font-semibold tracking-tight">Configure indicators</h2>
-          <p className="mt-1 text-white/70 text-sm">
-            Toggle and tune the indicators you want this bot to use.
-          </p>
-        </div>
-
-        {/* Summary chips */}
-        <div className="flex flex-wrap items-center gap-2">
-          {anyEnabled ? (
-            enabledBadges.map((label) => (
-              <span
-                key={label}
-                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/80"
-              >
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#e3b8ff]" />
-                {label}
-              </span>
-            ))
-          ) : (
-            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60">
-              No indicators enabled
-            </span>
-          )}
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h2 className="mb-2 text-2xl font-bold text-white">
+          Configure Indicators
+        </h2>
+        <p className="text-white/60">
+          Enable and customize technical indicators for your bot
+        </p>
+        <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5">
+          <div className={`h-2 w-2 rounded-full ${enabledCount > 0 ? 'bg-white' : 'bg-white/30'}`} />
+          <span className="text-sm text-white/70">
+            {enabledCount} {enabledCount === 1 ? "indicator" : "indicators"}{" "}
+            enabled
+          </span>
         </div>
       </div>
 
-      {/* ===== Sections ===== */}
-      <div className="grid grid-cols-1 gap-6">
+      {/* Indicators */}
+      <div className="space-y-6">
         {/* RSI */}
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <RsiSettings
-            step={step}
-            setStep={setStep}
             enabled={rsiEnabled}
             setEnabled={setRsiEnabled}
             settings={rsiSettings}
             setSettings={setRsiSettings}
           />
-        </section>
-      </div>
-
-      {/* ===== Footer nav ===== */}
-      <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-4">
-        <button
-          onClick={handleBack}
-          disabled={creating}
-          className="rounded-2xl border border-white/15 bg-white/5 px-5 py-2.5 text-white transition hover:bg-white/10 disabled:opacity-50"
-        >
-          ← Back
-        </button>
-
-        <div className="text-xs text-white/60">
-          {anyEnabled ? (
-            <span>At least one indicator selected</span>
-          ) : (
-            <span className="text-red-300">Enable at least one indicator to continue</span>
-          )}
         </div>
 
-        <button
-          onClick={handleCreateBot}
-          disabled={!anyEnabled || creating}
-          className={`rounded-2xl px-6 py-2.5 font-semibold transition-[transform,background,box-shadow]
-            ${anyEnabled && !creating
-              ? "bg-[#e3b8ff] text-black shadow-[0_12px_30px_-10px_rgba(227,184,255,0.6)] hover:-translate-y-0.5 hover:bg-[#d7a8ff] focus:outline-none focus-visible:ring focus-visible:ring-[#e3b8ff]/40 active:translate-y-0"
-              : "bg-white/10 text-white/50 cursor-not-allowed"}`}
-        >
-          {creating ? "Creating..." : "Create Bot →"}
-        </button>
+        {/* Bollinger Bands */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <BollingerBandsSettings
+            enabled={bbEnabled}
+            setEnabled={setBbEnabled}
+            settings={bbSettings}
+            setSettings={setBbSettings}
+          />
+        </div>
+
+        {/* Support & Resistance */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <SupportResistanceSettings
+            enabled={srEnabled}
+            setEnabled={setSrEnabled}
+            settings={srSettings}
+            setSettings={setSrSettings}
+          />
+        </div>
       </div>
-    </motion.div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-6">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setStep(step - 1)}
+          className="rounded-xl border border-white/10 bg-white/5 px-6 py-3 font-medium text-white/90 transition hover:bg-white/10"
+        >
+          ← Back
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleCreateBot}
+          disabled={isCreating || enabledCount === 0}
+          className="rounded-xl bg-white px-8 py-3 font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isCreating ? (
+            <span className="flex items-center gap-2">
+              <svg
+                className="h-5 w-5 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Creating Bot...
+            </span>
+          ) : (
+            `Create Bot →`
+          )}
+        </motion.button>
+      </div>
+    </div>
   );
-} 
+}
