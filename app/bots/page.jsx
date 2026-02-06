@@ -1,74 +1,35 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-import CreateTile from "../components/Tile";
+import { motion, AnimatePresence } from "framer-motion";
 import { GetBots, DeleteBots } from "../api/ApiWrapper";
-
-import {
-  Cpu,
-  LineChart,
-  Activity,
-  ArrowRight,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
-  Bot,
-  Loader2,
-  Circle,
-  CheckCircle2,
-  X,
-} from "lucide-react";
+import { Trash2, Plus, TrendingUp } from "lucide-react";
 
 export default function Bots() {
   const router = useRouter();
 
   const [bots, setBots] = useState([]);
-  const [loadingBots, setLoadingBots] = useState(true);
-
-  const [selectedId, setSelectedId] = useState(null);
-  const [expanded, setExpanded] = useState({});
+  const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState({});
-
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // LOAD BOTS
   useEffect(() => {
     GetBots((res) => {
-      const list = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.data)
-        ? res.data
-        : [];
-
+      const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
       setBots(list || []);
-      setLoadingBots(false);
+      setLoading(false);
     });
   }, []);
 
-  // CLEAR SELECTION if bots disappear
-  useEffect(() => {
-    if (!loadingBots && bots.length === 0) {
-      setSelectedId(null);
-    }
-  }, [bots, loadingBots]);
-
-  // DELETE BOT
-  async function handleDeleteConfirm() {
-    if (!deleteTarget) return;
-
-    const id = deleteTarget;
-    setShowDeleteDialog(false);
-
+  async function handleDelete(id) {
+    setDeleteTarget(null);
     const snapshot = bots;
     setDeleting((prev) => ({ ...prev, [id]: true }));
     setBots((prev) => prev.filter((b) => b.id !== id));
 
     try {
       await DeleteBots(id);
-      if (selectedId === id) setSelectedId(null);
     } catch (err) {
       console.error("Delete error", err);
       setBots(snapshot);
@@ -81,345 +42,250 @@ export default function Bots() {
     }
   }
 
-  // HEADER SUBTITLE
-  const headerSubtitle = useMemo(() => {
-    if (loadingBots) return "Loading your bots…";
-    if (bots.length === 0) return "Create your first strategy bot to get started.";
-    return `${bots.length} ${bots.length === 1 ? "bot" : "bots"} in your workspace.`;
-  }, [bots, loadingBots]);
-
   return (
-    <div className="min-h-screen bg-[#0B0B12] text-slate-100">
+    <div className="min-h-screen bg-black text-white">
+      {/* Ambient background */}
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900 via-black to-black" />
 
-      {/* HEADER */}
-      <header className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#0B0B12]/80 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-6 py-5 flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 ring-1 ring-white/[0.08] grid place-items-center">
-            <Cpu className="h-5 w-5 text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">Bots</h1>
-            <p className="text-[13px] text-slate-500">{headerSubtitle}</p>
-          </div>
-        </div>
-      </header>
+      <div className="mx-auto max-w-7xl px-6 py-16">
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12"
+        >
+          <h1 className="mb-3 bg-gradient-to-br from-white to-white/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent">
+            Your Bots
+          </h1>
+          <p className="text-lg text-white/50">
+            {loading
+              ? "Loading..."
+              : bots.length === 0
+              ? "Create your first trading bot"
+              : `${bots.length} active ${bots.length === 1 ? "bot" : "bots"}`}
+          </p>
+        </motion.header>
 
-      {/* SELECTED TOOLBAR */}
-      {selectedId && bots.some((b) => b.id === selectedId) && (
-        <div className="sticky top-[68px] z-10 bg-[#0B0B12]/90 backdrop-blur-lg border-b border-white/[0.06]">
-          <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
-
-            <div className="text-[13px] text-slate-400">
-              Selected: <span className="text-slate-200 font-medium">Bot #{selectedId}</span>
+        {/* Empty State */}
+        {!loading && bots.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center rounded-[32px] border border-white/10 bg-white/[0.02] p-16 text-center"
+          >
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-white/5">
+              <TrendingUp className="h-10 w-10 text-white/40" />
             </div>
-
-            <button
-              onClick={() => setSelectedId(null)}
-              className="flex items-center gap-2 px-3 py-1.5 text-[13px] rounded-lg 
-                         bg-white/[0.04] hover:bg-white/[0.08] ring-1 ring-white/[0.08] 
-                         text-slate-300 transition-all duration-200"
-            >
-              <X className="h-3.5 w-3.5" /> Clear
-            </button>
-
-          </div>
-        </div>
-      )}
-
-      {/* MAIN */}
-      <main className="mx-auto max-w-7xl px-6 py-10">
-
-        {/* EMPTY STATE */}
-        {!loadingBots && bots.length === 0 && (
-          <div className="p-12 text-center rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-
-            <div className="h-14 w-14 rounded-2xl bg-white/[0.04] ring-1 ring-white/[0.06] grid place-items-center mx-auto mb-5">
-              <Bot className="h-7 w-7 text-slate-400" />
-            </div>
-
-            <h2 className="text-base font-medium text-slate-200">No bots yet</h2>
-            <p className="text-sm text-slate-500 mt-1.5 max-w-xs mx-auto">
-              Deploy your first RSI or SR strategy and monitor it here.
+            <h2 className="mb-2 text-2xl font-semibold">No bots yet</h2>
+            <p className="mb-8 max-w-md text-white/50">
+              Create your first automated trading bot with custom indicators
             </p>
-
-            <button
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => router.push("/lab")}
-              className="mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl 
-                         bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 
-                         hover:bg-indigo-500/25 hover:border-indigo-500/40
-                         transition-all duration-200"
+              className="flex items-center gap-2 rounded-2xl bg-white px-8 py-3 font-semibold text-black transition hover:bg-white/90"
             >
-              Create Bot <ArrowRight className="h-4 w-4" />
-            </button>
-
-          </div>
+              <Plus className="h-5 w-5" />
+              Create Bot
+            </motion.button>
+          </motion.div>
         )}
 
-        {/* LOADING STATE */}
-        {loadingBots && (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {/* Loading State */}
+        {loading && (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02]"
-              >
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="h-8 w-8 rounded-full bg-white/[0.06] animate-pulse" />
-                  <div className="flex-1">
-                    <div className="h-4 w-24 bg-white/[0.06] rounded animate-pulse" />
-                    <div className="h-3 w-32 bg-white/[0.04] rounded mt-2 animate-pulse" />
-                  </div>
-                </div>
-                <div className="h-20 bg-white/[0.04] rounded-xl animate-pulse mb-4" />
-                <div className="h-9 bg-white/[0.04] rounded-lg animate-pulse" />
-              </div>
+                className="h-64 animate-pulse rounded-[32px] border border-white/10 bg-white/[0.02]"
+              />
             ))}
           </div>
         )}
 
-        {/* BOT GRID */}
-        {!loadingBots && bots.length > 0 && (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {/* Bots Grid */}
+        {!loading && bots.length > 0 && (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <AnimatePresence>
+              {bots.map((bot, index) => {
+                const indicators = [
+                  ...(bot?.rsi ? ["RSI"] : []),
+                  ...(bot?.bb ? ["Bollinger"] : []),
+                  ...(bot?.sr ? ["S/R"] : []),
+                ];
 
-            {bots.map((bot) => {
-              const open = expanded[bot.id];
-              const isDeleting = deleting[bot.id];
-              const selected = selectedId === bot.id;
-              const indicators = bot?.indicators?.length
-                ? bot.indicators
-                : [...(bot?.rsi ? ["RSI"] : []), ...(bot?.sr ? ["SR"] : [])];
-
-              return (
-                <article
-                  key={bot.id}
-                  style={{
-                    transform: selected ? 'scale(0.995)' : undefined,
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}
-                  className={`group rounded-2xl border p-5 
-                    bg-gradient-to-b from-white/[0.03] to-transparent
-                    hover:from-white/[0.05] hover:to-white/[0.01]
-                    hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20
-                    transition-all duration-250
-                    ${selected 
-                      ? "border-indigo-500/40 ring-1 ring-indigo-500/20" 
-                      : "border-white/[0.06] hover:border-white/[0.12]"
-                    }`}
-                >
-                  {/* TOP ROW */}
-                  <div className="flex items-start gap-3">
-
-                    {/* SELECT */}
+                return (
+                  <motion.article
+                    key={bot.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ y: -4 }}
+                    className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl transition-all hover:border-white/20"
+                  >
+                    {/* Delete Button */}
                     <button
-                      onClick={() => setSelectedId(selected ? null : bot.id)}
-                      className={`h-8 w-8 flex-shrink-0 flex items-center justify-center rounded-full border 
-                        transition-all duration-200
-                        ${selected 
-                          ? "bg-indigo-500/20 border-indigo-400/50 text-indigo-300"
-                          : "bg-white/[0.04] border-white/[0.1] text-slate-500 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-slate-300"
-                        }`}
+                      onClick={() => setDeleteTarget(bot.id)}
+                      disabled={deleting[bot.id]}
+                      className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 opacity-0 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
                     >
-                      {selected 
-                        ? <CheckCircle2 className="h-4 w-4" /> 
-                        : <Circle className="h-4 w-4" />
-                      }
-                    </button>
-
-                    {/* TITLE */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-[15px] font-semibold text-slate-100 truncate">
-                          Bot #{bot.id}
-                        </h3>
-                        {selected && (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md 
-                                           bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-500/25">
-                            Selected
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[12px] text-slate-600 mt-0.5">
-                        {bot.created_at ? new Date(bot.created_at).toLocaleString() : "—"}
-                      </p>
-                    </div>
-
-                    {/* DELETE */}
-                    <button
-                      onClick={() => {
-                        setDeleteTarget(bot.id);
-                        setShowDeleteDialog(true);
-                      }}
-                      disabled={isDeleting}
-                      className="p-2 rounded-lg text-slate-600 
-                                 hover:text-rose-400 hover:bg-rose-500/10
-                                 transition-all duration-200 disabled:opacity-40"
-                    >
-                      {isDeleting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                      {deleting[bot.id] ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
                       ) : (
                         <Trash2 className="h-4 w-4" />
                       )}
                     </button>
 
-                  </div>
-
-                  {/* INDICATORS */}
-                  <div className="mt-5">
-                    <p className="text-[11px] font-medium text-slate-500 flex items-center gap-2 mb-2 uppercase tracking-wide">
-                      <Activity className="h-3.5 w-3.5 text-slate-600" /> Indicators
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {indicators.length > 0 ? (
-                        indicators.map((i) => (
-                          <span
-                            key={i}
-                            className="px-2.5 py-1 rounded-md bg-white/[0.04] ring-1 ring-white/[0.08] 
-                                       text-[12px] text-slate-300"
-                          >
-                            {i}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-[12px] text-slate-600">—</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* ASSETS */}
-                  <div className="mt-4">
-                    <p className="text-[11px] font-medium text-slate-500 flex items-center gap-2 mb-2 uppercase tracking-wide">
-                      <LineChart className="h-3.5 w-3.5 text-slate-600" /> Cryptos
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {bot?.bot_assets?.length > 0 ? (
-                        bot.bot_assets.map((a) => (
-                          <span
-                            key={a}
-                            className="px-2.5 py-1 rounded-md bg-white/[0.04] ring-1 ring-white/[0.08] 
-                                       text-[12px] text-slate-300"
-                          >
-                            {a}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-[12px] text-slate-600">—</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* DETAILS SECTION */}
-                  <div className="mt-5 pt-4 border-t border-white/[0.06]">
-                    <button
-                      onClick={() =>
-                        setExpanded((prev) => ({ ...prev, [bot.id]: !prev[bot.id] }))
-                      }
-                      className="text-[12px] flex items-center gap-1.5 text-slate-500 
-                                 hover:text-slate-300 transition-colors duration-200"
-                    >
-                      {open ? (
-                        <>Hide details <ChevronUp className="h-3.5 w-3.5" /></>
-                      ) : (
-                        <>View details <ChevronDown className="h-3.5 w-3.5" /></>
-                      )}
-                    </button>
-
-                    {open && (
-                      <div className="mt-4 text-[13px] text-slate-400 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                        {bot?.rsi && (
-                          <div className="p-3 rounded-lg bg-white/[0.02] ring-1 ring-white/[0.06]">
-                            <div className="font-medium text-slate-300 mb-2">RSI Settings</div>
-                            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px]">
-                              <span className="text-slate-500">Period: <span className="text-slate-300">{bot.rsi.period ?? "—"}</span></span>
-                              <span className="text-slate-500">Min: <span className="text-slate-300">{bot.rsi.min ?? "—"}</span></span>
-                              <span className="text-slate-500">Max: <span className="text-slate-300">{bot.rsi.max ?? "—"}</span></span>
-                            </div>
-                          </div>
-                        )}
+                    {/* Content */}
+                    <div className="mb-6">
+                      <div className="mb-4 text-xs text-white/40">
+                        {bot.created_at
+                          ? new Date(bot.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "Recently created"}
                       </div>
-                    )}
-                  </div>
 
-                  {/* FOOTER */}
-                  <div className="mt-4 pt-4 border-t border-white/[0.06]">
-                    <button
-                      onClick={() => setSelectedId(bot.id)}
-                      className={`flex items-center gap-2 px-3 py-2 text-[12px] font-medium rounded-lg 
-                          ring-1 transition-all duration-200
-                          ${
-                            selected
-                              ? "bg-indigo-500/15 text-indigo-300 ring-indigo-500/30"
-                              : "bg-white/[0.03] text-slate-400 ring-white/[0.08] hover:bg-white/[0.06] hover:text-slate-200"
-                          }`}
-                    >
-                      {selected ? "Selected" : "Select"}
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                      <h3 className="mb-2 text-xl font-semibold">Trading Bot</h3>
 
-                </article>
-              );
-            })}
+                      {/* Indicators */}
+                      <div className="mb-4 flex flex-wrap gap-2">
+                        {indicators.map((ind) => (
+                          <span
+                            key={ind}
+                            className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-medium text-white/80"
+                          >
+                            {ind}
+                          </span>
+                        ))}
+                      </div>
 
-            {/* CREATE TILE */}
-            <CreateTile
-              locked={bots.length >= 1}
-              onCreate={() => router.push("/lab")}
-            />
+                      {/* Assets */}
+                      {bot?.bot_assets?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {bot.bot_assets.slice(0, 3).map((asset) => (
+                            <span
+                              key={asset}
+                              className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-white/60"
+                            >
+                              {asset}
+                            </span>
+                          ))}
+                          {bot.bot_assets.length > 3 && (
+                            <span className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-white/60">
+                              +{bot.bot_assets.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
+                      <div>
+                        <div className="text-xs text-white/40">ROI</div>
+                        <div className="text-lg font-semibold">
+                          {bot.roi ? `${parseFloat(bot.roi).toFixed(2)}%` : "—"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-white/40">Status</div>
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className={`h-2 w-2 rounded-full ${
+                              bot.is_active ? "bg-green-400" : "bg-white/30"
+                            }`}
+                          />
+                          <span className="text-sm text-white/80">
+                            {bot.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.article>
+                );
+              })}
+
+              {/* Create New Bot Card */}
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: bots.length * 0.05 }}
+                whileHover={{ y: -4 }}
+                onClick={() => router.push("/lab")}
+                className="group flex min-h-[16rem] flex-col items-center justify-center rounded-[32px] border border-dashed border-white/20 bg-white/[0.02] p-6 text-center transition-all hover:border-white/40 hover:bg-white/[0.04]"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 transition group-hover:bg-white/10">
+                  <Plus className="h-6 w-6 text-white/60" />
+                </div>
+                <div className="text-sm font-medium text-white/80">Create New Bot</div>
+                <div className="mt-1 text-xs text-white/40">Start trading automatically</div>
+              </motion.button>
+            </AnimatePresence>
           </div>
         )}
-      </main>
+      </div>
 
-      {/* DELETE MODAL */}
-      {showDeleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setShowDeleteDialog(false)}
-          />
-
-          <div
-            className="relative w-full max-w-sm rounded-2xl border border-white/[0.1]
-                        bg-[#12121a] shadow-2xl shadow-black/50
-                        p-6 animate-in fade-in zoom-in-95 duration-200"
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <h2 className="text-lg font-semibold text-slate-100 mb-2">
-              Delete Bot
-            </h2>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+              onClick={() => setDeleteTarget(null)}
+            />
 
-            <p className="text-[14px] text-slate-500 mb-6 leading-relaxed">
-              Are you sure you want to delete{" "}
-              <span className="text-slate-200 font-medium">Bot #{deleteTarget}</span>?
-              <br />This action cannot be undone.
-            </p>
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative w-full max-w-md"
+            >
+              <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-white/[0.07] to-white/[0.02] blur-xl" />
+              <div className="relative rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent p-8 backdrop-blur-2xl">
+                <h2 className="mb-2 text-2xl font-bold">Delete Bot?</h2>
+                <p className="mb-8 text-white/60">
+                  This action cannot be undone. Your bot and all its data will be permanently deleted.
+                </p>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteDialog(false)}
-                className="flex-1 py-2.5 rounded-xl border border-white/[0.1] 
-                           text-slate-400 text-[14px] font-medium
-                           hover:bg-white/[0.04] hover:text-slate-200
-                           transition-all duration-200"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 py-2.5 rounded-xl 
-                           bg-rose-500/15 border border-rose-500/30 
-                           text-rose-400 text-[14px] font-medium
-                           hover:bg-rose-500/25 hover:border-rose-500/50
-                           transition-all duration-200"
-              >
-                Delete
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setDeleteTarget(null)}
+                    className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 font-medium transition hover:bg-white/10"
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleDelete(deleteTarget)}
+                    className="flex-1 rounded-2xl bg-red-500/10 px-6 py-3 font-medium text-red-400 ring-1 ring-red-500/20 transition hover:bg-red-500/20"
+                  >
+                    Delete
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
