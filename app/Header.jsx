@@ -2,95 +2,47 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, FlaskConical, Bot, Settings, LogOut, ChevronRight } from "lucide-react";
-
-const cx = (...a) => a.filter(Boolean).join(" ");
+import { Menu, X, FlaskConical, Bot, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 function NavItem({ href, label, icon: Icon, active, onClick }) {
   return (
     <Link
       href={href}
       onClick={onClick}
-      className={cx(
-        "group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+      className={`group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
         active
-          ? "text-white bg-white/[0.08]"
-          : "text-white/60 hover:text-white hover:bg-white/[0.05]"
-      )}
+          ? "text-white"
+          : "text-white/60 hover:text-white hover:bg-white/5"
+      }`}
     >
       {Icon && (
-        <Icon
-          className={cx(
-            "h-4 w-4 transition-colors",
-            active ? "text-violet-400" : "text-white/40 group-hover:text-white/60"
-          )}
-        />
+        <Icon className={`h-4 w-4 ${active ? "text-white" : "text-white/50"}`} />
       )}
       {label}
-
       {active && (
-        <span className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />
+        <motion.div
+          layoutId="activeTab"
+          className="absolute inset-0 -z-10 rounded-xl bg-white/10"
+          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+        />
       )}
     </Link>
-  );
-}
-
-function PrimaryBtn({ children, href, onClick }) {
-  const common =
-    "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold " +
-    "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white " +
-    "hover:from-violet-400 hover:to-fuchsia-400 " +
-    "shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 " +
-    "hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200";
-
-  return href ? (
-    <Link href={href} onClick={onClick} className={common}>
-      {children}
-    </Link>
-  ) : (
-    <button onClick={onClick} className={common}>
-      {children}
-    </button>
-  );
-}
-
-function GhostBtn({ children, onClick, danger }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cx(
-        "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium",
-        "border transition-all duration-200",
-        danger
-          ? "border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50"
-          : "border-white/[0.1] text-white/80 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.15]"
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
 export default function Header({ ping }) {
   const pathname = usePathname();
-  const [confirming, setConfirming] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
 
-  const nav = useMemo(
-    () => [
-      { href: "/lab", label: "Lab", icon: FlaskConical },
-      { href: "/bots", label: "Bots", icon: Bot },
-      { href: "/settings", label: "Settings", icon: Settings },
-    ],
-    []
-  );
-
-  const closeAnd = (fn) => () => {
-    setOpen(false);
-    if (typeof fn === "function") fn();
-  };
+  const nav = [
+    { href: "/lab", label: "Lab", icon: FlaskConical },
+    { href: "/bots", label: "Bots", icon: Bot },
+    { href: "/settings", label: "Settings", icon: SettingsIcon },
+  ];
 
   const handleLogout = () => {
     document.cookie = "access=; path=/; max-age=0;";
@@ -99,28 +51,24 @@ export default function Header({ ping }) {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl">
-      <div className="mx-auto max-w-7xl flex items-center justify-between px-5 sm:px-6 h-16">
-
-        {/* LOGO */}
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="relative">
-            <Image
-              src="/logo.png"
-              width={32}
-              height={32}
-              alt="Cryphos"
-              className="rounded-lg transition-transform duration-200 group-hover:scale-105"
-              priority
-            />
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
+          <Image
+            src="/logo.png"
+            width={32}
+            height={32}
+            alt="Cryphos"
+            className="rounded-lg transition-transform group-hover:scale-105"
+            priority
+          />
           <span className="text-lg font-bold tracking-tight text-white">
             Cryphos
           </span>
         </Link>
 
-        {/* DESKTOP NAV */}
+        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
           {nav.map((n) => (
             <NavItem
@@ -133,100 +81,143 @@ export default function Header({ ping }) {
           ))}
         </nav>
 
-        {/* DESKTOP AUTH */}
+        {/* Desktop Auth */}
         <div className="hidden md:flex items-center gap-3">
           {!ping ? (
             <>
               <Link
                 href="/login"
-                className="px-3 py-2 text-sm font-medium text-white/60 hover:text-white transition-colors"
+                className="rounded-xl px-4 py-2 text-sm font-medium text-white/60 transition hover:text-white"
               >
                 Log in
               </Link>
-              <PrimaryBtn href="/register">
-                Sign Up
-                <ChevronRight className="h-4 w-4" />
-              </PrimaryBtn>
+              <Link href="/register">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="rounded-xl bg-white px-5 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
+                >
+                  Sign Up
+                </motion.button>
+              </Link>
             </>
-          ) : !confirming ? (
-            <GhostBtn onClick={() => setConfirming(true)}>
+          ) : !logoutConfirm ? (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setLogoutConfirm(true)}
+              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10"
+            >
               <LogOut className="h-4 w-4" />
               Log Out
-            </GhostBtn>
+            </motion.button>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-white/50 mr-1">Sure?</span>
-              <GhostBtn danger onClick={handleLogout}>Yes, log out</GhostBtn>
-              <GhostBtn onClick={() => setConfirming(false)}>Cancel</GhostBtn>
+              <span className="text-sm text-white/50">Sure?</span>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleLogout}
+                className="rounded-xl bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 ring-1 ring-red-500/20 transition hover:bg-red-500/20"
+              >
+                Yes
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setLogoutConfirm(false)}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10"
+              >
+                Cancel
+              </motion.button>
             </div>
           )}
         </div>
 
-        {/* MOBILE: Hamburger */}
+        {/* Mobile Hamburger */}
         <button
-          onClick={() => setOpen((v) => !v)}
-          className="md:hidden flex items-center justify-center h-10 w-10 rounded-xl 
-                     text-white/70 hover:text-white hover:bg-white/[0.06] 
-                     transition-all duration-200"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-white/70 transition hover:bg-white/5 hover:text-white md:hidden"
         >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* MOBILE MENU */}
-      <div
-        className={cx(
-          "md:hidden overflow-hidden border-t border-white/[0.06]",
-          "bg-[#0a0a0f]/95 backdrop-blur-xl transition-all duration-300 ease-out",
-          open ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden border-t border-white/10 bg-black/95 backdrop-blur-xl md:hidden"
+          >
+            <div className="space-y-1 p-4">
+              {nav.map((n) => (
+                <NavItem
+                  key={n.href}
+                  href={n.href}
+                  label={n.label}
+                  icon={n.icon}
+                  active={pathname === n.href}
+                  onClick={() => setMobileOpen(false)}
+                />
+              ))}
+
+              <div className="my-3 h-px bg-white/10" />
+
+              {!ping ? (
+                <div className="space-y-2">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex w-full items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white/60 transition hover:text-white"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              ) : !logoutConfirm ? (
+                <button
+                  onClick={() => setLogoutConfirm(true)}
+                  className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Log Out
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="px-2 text-sm text-white/50">Are you sure?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setMobileOpen(false);
+                      }}
+                      className="flex-1 rounded-xl bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 ring-1 ring-red-500/20"
+                    >
+                      Yes, log out
+                    </button>
+                    <button
+                      onClick={() => setLogoutConfirm(false)}
+                      className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
         )}
-      >
-        <div className="flex flex-col gap-1 p-4">
-
-          {nav.map((n) => (
-            <NavItem
-              key={n.href}
-              href={n.href}
-              label={n.label}
-              icon={n.icon}
-              active={pathname === n.href}
-              onClick={closeAnd()}
-            />
-          ))}
-
-          <div className="h-px bg-white/[0.06] my-3" />
-
-          {/* mobile auth */}
-          {!ping ? (
-            <div className="flex flex-col gap-3">
-              <Link
-                href="/login"
-                onClick={closeAnd()}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white/60 hover:text-white transition-colors"
-              >
-                Log in
-              </Link>
-              <PrimaryBtn href="/register" onClick={closeAnd()}>
-                Sign Up
-                <ChevronRight className="h-4 w-4" />
-              </PrimaryBtn>
-            </div>
-          ) : !confirming ? (
-            <GhostBtn onClick={closeAnd(() => setConfirming(true))}>
-              <LogOut className="h-4 w-4" />
-              Log Out
-            </GhostBtn>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <span className="text-sm text-white/50 px-1">Are you sure?</span>
-              <div className="flex gap-2">
-                <GhostBtn danger onClick={closeAnd(handleLogout)}>Yes, log out</GhostBtn>
-                <GhostBtn onClick={closeAnd(() => setConfirming(false))}>Cancel</GhostBtn>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      </AnimatePresence>
     </header>
   );
 }
