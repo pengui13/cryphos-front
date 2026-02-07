@@ -171,7 +171,7 @@ export async function CreateBot(data, setSuccess, setError) {
   }
 
   // Process intervals inside indicators
-  const indicators = [
+const indicators = [
     "rsi",
     "macd",
     "ma",
@@ -180,7 +180,8 @@ export async function CreateBot(data, setSuccess, setError) {
     "bollinger_bands",
     "obv",
     "atr",
-  ];
+    "sr",  
+];
 
   indicators.forEach((indicator) => {
     if (
