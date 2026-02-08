@@ -393,3 +393,17 @@ export async function DeleteBots(id) {
     },
   });
 }
+
+export async function GetSignals(botId, onSuccess, onError) {
+  return apiRequest({
+    endpoint: `${BASE_URL}bots/get_signals/${botId}/`,
+    method: "GET",
+    onSuccess: (json) => {
+      if (onSuccess) onSuccess(json);
+    },
+    onError: (err) => {
+      console.error("GetSignals failed:", err);
+      if (onError) onError(err);
+    },
+  });
+}

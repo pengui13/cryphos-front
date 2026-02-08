@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { GetBots, DeleteBots } from "../api/ApiWrapper";
-import { Trash2, Plus, TrendingUp } from "lucide-react";
+import { GetBots, DeleteBots, GetSignals } from "../api/ApiWrapper";
+import { Trash2, Plus, TrendingUp, Activity, TrendingDown, Zap } from "lucide-react";
 
 export default function Bots() {
   const router = useRouter();
@@ -13,14 +13,64 @@ export default function Bots() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState({});
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [selectedBot, setSelectedBot] = useState(null);
+  const [signals, setSignals] = useState({});
+  const [loadingSignals, setLoadingSignals] = useState({});
+  const [signalCounts, setSignalCounts] = useState({}); // Track signal counts
 
   useEffect(() => {
     GetBots((res) => {
       const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
       setBots(list || []);
       setLoading(false);
+      
+      // Fetch signal counts for all bots
+      list.forEach(bot => {
+        fetchSignalCount(bot.id);
+      });
     });
   }, []);
+
+  async function fetchSignalCount(botId) {
+    GetSignals(
+      botId,
+      (data) => {
+        setSignalCounts((prev) => ({ 
+          ...prev, 
+          [botId]: Array.isArray(data) ? data.length : 0 
+        }));
+      },
+      (err) => {
+        console.error(`Failed to fetch signal count for bot ${botId}:`, err);
+      }
+    );
+  }
+
+  async function fetchSignals(botId, e) {
+    if (e) {
+      e.stopPropagation();
+    }
+
+    if (signals[botId]) {
+      setSelectedBot(botId);
+      return;
+    }
+
+    setLoadingSignals((prev) => ({ ...prev, [botId]: true }));
+    
+    GetSignals(
+      botId,
+      (data) => {
+        setSignals((prev) => ({ ...prev, [botId]: data }));
+        setSelectedBot(botId);
+        setLoadingSignals((prev) => ({ ...prev, [botId]: false }));
+      },
+      (err) => {
+        console.error("Error fetching signals:", err);
+        setLoadingSignals((prev) => ({ ...prev, [botId]: false }));
+      }
+    );
+  }
 
   async function handleDelete(id) {
     setDeleteTarget(null);
@@ -42,13 +92,13 @@ export default function Bots() {
     }
   }
 
+  const selectedBotSignals = selectedBot ? signals[selectedBot] : [];
+
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Ambient background */}
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900 via-black to-black" />
 
       <div className="mx-auto max-w-7xl px-6 py-16">
-        {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -66,7 +116,6 @@ export default function Bots() {
           </p>
         </motion.header>
 
-        {/* Empty State */}
         {!loading && bots.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -92,7 +141,6 @@ export default function Bots() {
           </motion.div>
         )}
 
-        {/* Loading State */}
         {loading && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -104,7 +152,6 @@ export default function Bots() {
           </div>
         )}
 
-        {/* Bots Grid */}
         {!loading && bots.length > 0 && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence>
@@ -114,6 +161,7 @@ export default function Bots() {
                   ...(bot?.bb ? ["Bollinger"] : []),
                   ...(bot?.sr ? ["S/R"] : []),
                 ];
+                const signalCount = signalCounts[bot.id] || 0;
 
                 return (
                   <motion.article
@@ -127,9 +175,12 @@ export default function Bots() {
                   >
                     {/* Delete Button */}
                     <button
-                      onClick={() => setDeleteTarget(bot.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(bot.id);
+                      }}
                       disabled={deleting[bot.id]}
-                      className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 opacity-0 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                      className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 opacity-0 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
                     >
                       {deleting[bot.id] ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
@@ -206,6 +257,29 @@ export default function Bots() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Signals Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={(e) => fetchSignals(bot.id, e)}
+                      disabled={loadingSignals[bot.id]}
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium transition hover:bg-white/10"
+                    >
+                      {loadingSignals[bot.id] ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                          <span>Loading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-4 w-4 text-blue-400" />
+                          <span>
+                            {signalCount > 0 ? `View ${signalCount} Signal${signalCount !== 1 ? 's' : ''}` : 'No Signals Yet'}
+                          </span>
+                        </>
+                      )}
+                    </motion.button>
                   </motion.article>
                 );
               })}
@@ -239,7 +313,6 @@ export default function Bots() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -248,7 +321,6 @@ export default function Bots() {
               onClick={() => setDeleteTarget(null)}
             />
 
-            {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -280,6 +352,154 @@ export default function Bots() {
                   >
                     Delete
                   </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Signals Modal */}
+      <AnimatePresence>
+        {selectedBot && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+              onClick={() => setSelectedBot(null)}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative w-full max-w-4xl max-h-[80vh] overflow-hidden"
+            >
+              <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-white/[0.07] to-white/[0.02] blur-xl" />
+              <div className="relative rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-2xl">
+                {/* Header */}
+                <div className="border-b border-white/10 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold">Trading Signals</h2>
+                      <p className="text-sm text-white/60">
+                        {selectedBotSignals?.length || 0} total signals
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedBot(null)}
+                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/10"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                {/* Signals List */}
+                <div className="max-h-[60vh] overflow-y-auto p-6">
+                  {!selectedBotSignals || selectedBotSignals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <Activity className="mb-4 h-12 w-12 text-white/20" />
+                      <p className="text-white/60">No signals yet</p>
+                      <p className="text-sm text-white/40">Signals will appear when your bot generates them</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedBotSignals.map((signal) => {
+                        const pnl = signal.close_price && signal.open_price
+                          ? signal.is_long
+                            ? ((signal.close_price - signal.open_price) / signal.open_price) * 100
+                            : ((signal.open_price - signal.close_price) / signal.open_price) * 100
+                          : null;
+
+                        return (
+                          <motion.div
+                            key={signal.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="mb-2 flex items-center gap-2">
+                                  <span className="font-semibold">{signal.asset?.symbol || signal.asset}</span>
+                                  <span
+                                    className={`rounded-lg px-2 py-0.5 text-xs font-medium ${
+                                      signal.is_long
+                                        ? "bg-green-500/10 text-green-400"
+                                        : "bg-red-500/10 text-red-400"
+                                    }`}
+                                  >
+                                    {signal.is_long ? "LONG" : "SHORT"}
+                                  </span>
+                                  <span
+                                    className={`rounded-lg px-2 py-0.5 text-xs font-medium ${
+                                      signal.is_open
+                                        ? "bg-blue-500/10 text-blue-400"
+                                        : "bg-white/10 text-white/60"
+                                    }`}
+                                  >
+                                    {signal.is_open ? "OPEN" : "CLOSED"}
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
+                                  <div>
+                                    <div className="text-xs text-white/40">Open Price</div>
+                                    <div className="font-medium">${parseFloat(signal.open_price).toFixed(2)}</div>
+                                  </div>
+                                  {signal.close_price && (
+                                    <div>
+                                      <div className="text-xs text-white/40">Close Price</div>
+                                      <div className="font-medium">${parseFloat(signal.close_price).toFixed(2)}</div>
+                                    </div>
+                                  )}
+                                  {pnl !== null && (
+                                    <div>
+                                      <div className="text-xs text-white/40">P&L</div>
+                                      <div
+                                        className={`font-medium ${
+                                          pnl > 0 ? "text-green-400" : pnl < 0 ? "text-red-400" : ""
+                                        }`}
+                                      >
+                                        {pnl > 0 ? "+" : ""}
+                                        {pnl.toFixed(2)}%
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="text-xs text-white/40">Created</div>
+                                    <div className="font-medium">
+                                      {signal.created_at
+                                        ? new Date(signal.created_at).toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                          })
+                                        : "—"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {signal.is_long ? (
+                                <TrendingUp className="h-6 w-6 text-green-400/60" />
+                              ) : (
+                                <TrendingDown className="h-6 w-6 text-red-400/60" />
+                              )}
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
