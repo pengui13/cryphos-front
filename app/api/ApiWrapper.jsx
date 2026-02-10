@@ -308,7 +308,7 @@ export async function AddTelegram(nickname) {
 export async function GetTelegramInfo() {
   return new Promise((resolve, reject) => {
     apiRequest({
-      endpoint: `${BASE_URL}bots/get_tg_info/`,
+      endpoint: `${BASE_URL}auth/get_user_tg/`,
       method: "GET",
       onSuccess: (data) => resolve(data),
       onError: (err) => reject(err),

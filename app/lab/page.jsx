@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import ConfigureBot from "./ConfigureBot";
 import AssetsBlock from "./AssetsBlock";
 import Snackbar from "../components/Snackbar";
+import { GetTelegramInfo } from "../api/ApiWrapper";
+
 import {
   CreateBot,
   GetBillingStatus,
@@ -353,7 +355,7 @@ export default function BotsFactory() {
     );
   }
 
-  if (!billing.isActive) {
+  if (false) { //.  !billing.isActive
     return (
       <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 text-white">
         <Snackbar data={snackData} />

@@ -62,24 +62,26 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!ping) return;
+useEffect(() => {
+  if (!ping) return;
 
-    const loadTgInfo = async () => {
-      try {
-        const data = await GetTelegramInfo();
-        setTgNickname(data.tg || "");
-        setTgInput(data.tg || "");
-        setChatId(data.chat_id || null);
-      } catch (err) {
-        console.error("Failed to load TG info:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadTgInfo = async () => {
+    try {
+      const data = await GetTelegramInfo();
 
-    loadTgInfo();
-  }, [ping]);
+      const nickname = data?.tg_nickname || "";
+      setTgNickname(nickname);
+      setTgInput(nickname);
+    } catch (err) {
+      console.error("Failed to load TG info:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadTgInfo();
+}, [ping]);
+
 
   const isConnected = Boolean(chatId);
   const nicknameChanged = tgInput.trim().replace(/^@/, "") !== tgNickname;
