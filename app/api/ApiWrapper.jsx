@@ -328,7 +328,7 @@ export async function TogglePublishing(botId, setInfo) {
 export function GetRiskSettings(onSuccess, onError) {
   return apiRequest({
     method: "GET",
-    endpoint: `${BASE_URL}risk-settings/`,
+    endpoint: `${BASE_URL}bots/risk-settings/`,
     onSuccess: (json) => onSuccess?.(json),
     onError: (err) => onError?.(err),
   });
@@ -337,7 +337,7 @@ export function GetRiskSettings(onSuccess, onError) {
 export function UpdateRiskSettings(data, onSuccess, onError) {
   return apiRequest({
     method: "PATCH",
-    endpoint: `${BASE_URL}risk-settings/`,
+    endpoint: `${BASE_URL}bots/risk-settings/`,
     body: data,
     onSuccess: (json) => onSuccess?.(json),
     onError: (err) => onError?.(err),

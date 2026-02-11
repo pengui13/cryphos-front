@@ -3,26 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, TrendingUp, TrendingDown, Save, RotateCcw, AlertCircle } from "lucide-react";
-
-// API functions - add these to your ApiWrapper.js
-// export function GetRiskSettings(onSuccess, onError) {
-//   return apiRequest({
-//     method: "GET",
-//     endpoint: `${BASE_URL}risk-settings/`,
-//     onSuccess: (json) => onSuccess?.(json),
-//     onError: (err) => onError?.(err),
-//   });
-// }
-//
-// export function UpdateRiskSettings(data, onSuccess, onError) {
-//   return apiRequest({
-//     method: "PATCH",
-//     endpoint: `${BASE_URL}risk-settings/`,
-//     body: data,
-//     onSuccess: (json) => onSuccess?.(json),
-//     onError: (err) => onError?.(err),
-//   });
-// }
+import { GetRiskSettings, UpdateRiskSettings } from "../api/ApiWrapper";
 
 export default function RiskSettings({ onSettingsChange }) {
   const [settings, setSettings] = useState({
@@ -41,34 +22,25 @@ export default function RiskSettings({ onSettingsChange }) {
 
   const fetchSettings = () => {
     setLoading(true);
-    // Replace with your actual API call
-    // GetRiskSettings(
-    //   (data) => {
-    //     const loaded = {
-    //       take_profit: data.take_profit || "",
-    //       stop_loss: data.stop_loss || "",
-    //     };
-    //     setSettings(loaded);
-    //     setOriginalSettings(loaded);
-    //     setLoading(false);
-    //   },
-    //   (err) => {
-    //     setError("Failed to load settings");
-    //     setLoading(false);
-    //   }
-    // );
-
-    // Mock for demo
-    setTimeout(() => {
-      const loaded = { take_profit: "5.00", stop_loss: "3.00" };
-      setSettings(loaded);
-      setOriginalSettings(loaded);
-      setLoading(false);
-    }, 500);
+    GetRiskSettings(
+      (data) => {
+        const loaded = {
+          take_profit: data.take_profit || "",
+          stop_loss: data.stop_loss || "",
+        };
+        setSettings(loaded);
+        setOriginalSettings(loaded);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Failed to load risk settings:", err);
+        setError("Failed to load settings");
+        setLoading(false);
+      }
+    );
   };
 
   const handleChange = (field, value) => {
-    // Allow empty, or valid decimal numbers
     if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
       const numValue = parseFloat(value);
       if (value === "" || (numValue >= 0 && numValue <= 100)) {
@@ -80,7 +52,6 @@ export default function RiskSettings({ onSettingsChange }) {
   };
 
   const handleSave = async () => {
-    // Validation
     const tp = parseFloat(settings.take_profit);
     const sl = parseFloat(settings.stop_loss);
 
@@ -96,33 +67,24 @@ export default function RiskSettings({ onSettingsChange }) {
     setSaving(true);
     setError(null);
 
-    // Replace with your actual API call
-    // UpdateRiskSettings(
-    //   {
-    //     take_profit: settings.take_profit || null,
-    //     stop_loss: settings.stop_loss || null,
-    //   },
-    //   (data) => {
-    //     setOriginalSettings(settings);
-    //     setSuccess(true);
-    //     setSaving(false);
-    //     onSettingsChange?.(data);
-    //     setTimeout(() => setSuccess(false), 3000);
-    //   },
-    //   (err) => {
-    //     setError("Failed to save settings");
-    //     setSaving(false);
-    //   }
-    // );
-
-    // Mock for demo
-    setTimeout(() => {
-      setOriginalSettings(settings);
-      setSuccess(true);
-      setSaving(false);
-      onSettingsChange?.(settings);
-      setTimeout(() => setSuccess(false), 3000);
-    }, 500);
+    UpdateRiskSettings(
+      {
+        take_profit: settings.take_profit || null,
+        stop_loss: settings.stop_loss || null,
+      },
+      (data) => {
+        setOriginalSettings(settings);
+        setSuccess(true);
+        setSaving(false);
+        onSettingsChange?.(data);
+        setTimeout(() => setSuccess(false), 3000);
+      },
+      (err) => {
+        console.error("Failed to save risk settings:", err);
+        setError("Failed to save settings");
+        setSaving(false);
+      }
+    );
   };
 
   const handleReset = () => {
