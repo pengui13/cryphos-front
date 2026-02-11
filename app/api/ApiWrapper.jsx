@@ -325,7 +325,24 @@ export async function TogglePublishing(botId, setInfo) {
   });
 }
 
+export function GetRiskSettings(onSuccess, onError) {
+  return apiRequest({
+    method: "GET",
+    endpoint: `${BASE_URL}risk-settings/`,
+    onSuccess: (json) => onSuccess?.(json),
+    onError: (err) => onError?.(err),
+  });
+}
 
+export function UpdateRiskSettings(data, onSuccess, onError) {
+  return apiRequest({
+    method: "PATCH",
+    endpoint: `${BASE_URL}risk-settings/`,
+    body: data,
+    onSuccess: (json) => onSuccess?.(json),
+    onError: (err) => onError?.(err),
+  });
+}
 
 export function GetBacktestData(botId, params, onSuccess) {
   return apiRequest({

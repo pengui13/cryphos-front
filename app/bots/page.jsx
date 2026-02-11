@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GetBots, DeleteBots, GetSignals } from "../api/ApiWrapper";
 import { Trash2, Plus, TrendingUp, Activity, TrendingDown, Zap } from "lucide-react";
 import { usePing } from "../providers";
+import RiskSettings from "./RiskSettings";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -201,6 +202,7 @@ export default function Bots() {
             </motion.button>
           </motion.div>
         )}
+<RiskSettings onSettingsChange={(settings) => console.log("Updated:", settings)} />
 
         {loading && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
