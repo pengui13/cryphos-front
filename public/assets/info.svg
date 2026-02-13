@@ -1,8 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <!-- outer circle -->
-  <circle cx="12" cy="12" r="10"/>
-  <!-- the “i” stem -->
-  <line x1="12" y1="8" x2="12" y2="12"/>
-  <!-- the “i” dot -->
-  <circle cx="12" cy="16" r="1"/>
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="1.66406" y="1.66699" width="16.6667" height="16.6667" rx="8.33333" stroke="#999999" stroke-width="1.66667"/>
+<path d="M10.4141 14.167L10.4141 9.16699" stroke="#999999" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8.7474 9.16699L10.4141 9.16699" stroke="#999999" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10.4141 6.66732L10.4141 5.83398" stroke="#999999" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

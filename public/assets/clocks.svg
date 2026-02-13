@@ -1,0 +1,25 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- Clock Circle (Centered) -->
+    <circle cx="100" cy="100" r="90" stroke="#23a25d" stroke-width="15" fill="none"/>
+
+    <!-- Center Point -->
+    <circle cx="100" cy="100" r="4" fill="#23a25d" stroke-width="20"/>
+
+    <!-- Single Animated Hand -->
+    <line id="clock-hand" x1="100" y1="100" x2="100" y2="50" stroke="#23a25d" stroke-width="13" stroke-linecap="round"/>
+
+    <style>
+        @keyframes bounceRotation {
+            0% { transform: rotate(0deg); transform-origin: 100px 100px; }
+            20% { transform: rotate(100deg); transform-origin: 100px 100px; animation-timing-function: cubic-bezier(0.5, 1.8, 0.3, 1); }
+            40% { transform: rotate(180deg); transform-origin: 100px 100px; animation-timing-function: cubic-bezier(0.5, 1.8, 0.3, 1); }
+            60% { transform: rotate(260deg); transform-origin: 100px 100px; animation-timing-function: cubic-bezier(0.5, 1.8, 0.3, 1); }
+            80% { transform: rotate(340deg); transform-origin: 100px 100px; animation-timing-function: cubic-bezier(0.5, 1.8, 0.3, 1); }
+            100% { transform: rotate(360deg); transform-origin: 100px 100px; }
+        }
+
+        #clock-hand {
+            animation: bounceRotation 3s infinite;
+        }
+    </style>
+</svg>
