@@ -15,7 +15,7 @@ export default function AssetsBlock({
   const [isLoading, setIsLoading] = useState(true);
   const [failedImg, setFailedImg] = useState({});
 
-  const MAX_SELECTION = 50;
+  const maxSelection = symbols.length;
 
   useEffect(() => {
     const fetchSymbols = async () => {
@@ -35,37 +35,91 @@ export default function AssetsBlock({
     return symbols.filter((s) => s.toLowerCase().includes(q));
   }, [symbols, searchQuery]);
 
+  const unselectedSymbols = useMemo(() => {
+    return filteredSymbols.filter((s) => !selectedSymbols.includes(s));
+  }, [filteredSymbols, selectedSymbols]);
+
   const handleSelectAll = () => {
-    const available = filteredSymbols.length > 0 ? filteredSymbols : symbols;
-    setSelectedSymbols(available.slice(0, MAX_SELECTION));
+    setSelectedSymbols([...symbols]);
   };
 
-  const handleDeselectAll = () => {
-    setSelectedSymbols([]);
-  };
+  const handleDeselectAll = () => setSelectedSymbols([]);
 
-  const handleSelectTop10 = () => {
-    setSelectedSymbols(symbols.slice(0, 10));
-  };
+  const handleSelectTop10 = () => setSelectedSymbols(symbols.slice(0, 10));
 
-  const toggleSymbol = (symbol) => {
-    const on = selectedSymbols.includes(symbol);
-    if (on) {
-      setSelectedSymbols(selectedSymbols.filter((s) => s !== symbol));
-    } else if (selectedSymbols.length < MAX_SELECTION) {
+  const addSymbol = (symbol) => {
+    if (!selectedSymbols.includes(symbol)) {
       setSelectedSymbols([...selectedSymbols, symbol]);
     }
   };
 
-  const atLimit = selectedSymbols.length >= MAX_SELECTION;
+  const removeSymbol = (symbol) => {
+    setSelectedSymbols(selectedSymbols.filter((s) => s !== symbol));
+  };
+
+  const CoinIcon = ({ symbol, size = 32, selected = false }) => (
+    <div
+      className={`
+        relative rounded-full flex items-center justify-center overflow-hidden flex-shrink-0
+        ${selected ? "bg-[#e3b8ff]/20" : "bg-white/[0.06]"}
+      `}
+      style={{ width: size, height: size }}
+    >
+      {!failedImg[symbol] ? (
+        <Image
+          width={size * 0.7}
+          height={size * 0.7}
+          src={`/assets/${symbol.toLowerCase()}.png`}
+          alt={symbol}
+          className="object-contain rounded-full"
+          onError={() => setFailedImg((p) => ({ ...p, [symbol]: true }))}
+        />
+      ) : (
+        <span className={`text-[10px] font-bold ${selected ? "text-[#e3b8ff]" : "text-white/40"}`}>
+          {symbol.slice(0, 2)}
+        </span>
+      )}
+    </div>
+  );
+
+  // Mobile list item component
+  const MobileListItem = ({ symbol, selected, onClick }) => (
+    <button
+      onClick={onClick}
+      className={`
+        w-full flex items-center gap-3 px-3 py-2.5 transition-all
+        ${selected 
+          ? "bg-[#e3b8ff]/10 hover:bg-red-500/10" 
+          : "hover:bg-white/[0.04]"
+        }
+      `}
+    >
+      <CoinIcon symbol={symbol} size={28} selected={selected} />
+      <span className={`text-sm font-medium ${selected ? "text-[#e3b8ff]" : "text-white/80"}`}>
+        {symbol}
+      </span>
+      <svg
+        className={`ml-auto h-4 w-4 ${selected ? "text-red-400/60" : "text-white/20"}`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        {selected ? (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        ) : (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        )}
+      </svg>
+    </button>
+  );
 
   return (
-    <div className="w-full min-w-[320px] max-w-[820px] mx-auto">
-      {/* Search row */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 min-w-0">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-0">
+      {/* Search and quick actions */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
           <svg
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -74,140 +128,178 @@ export default function AssetsBlock({
           </svg>
           <input
             type="text"
-            className="w-full rounded-xl border border-white/10 bg-white/5 pl-12 pr-10 py-3 text-sm text-white placeholder-white/40 outline-none transition focus:border-[#e3b8ff]/50"
-            placeholder="Search assets..."
+            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] pl-11 pr-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all focus:border-[#e3b8ff]/30 focus:bg-white/[0.05]"
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-white/30 hover:text-white/60 hover:bg-white/5 transition"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
         </div>
-        
-        <div className={`
-          flex-shrink-0 px-4 py-3 rounded-xl text-sm font-medium tabular-nums border transition-colors
-          ${atLimit 
-            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
-            : selectedSymbols.length > 0
-              ? 'bg-[#e3b8ff]/10 text-[#e3b8ff] border-[#e3b8ff]/30'
-              : 'bg-white/5 text-white/60 border-white/10'
-          }
-        `}>
-          {selectedSymbols.length}/{MAX_SELECTION}
-        </div>
-      </div>
 
-      {/* Quick actions */}
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          onClick={handleSelectTop10}
-          className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/10 hover:text-white active:scale-95"
-        >
-          Top 10
-        </button>
-        <button
-          onClick={handleSelectAll}
-          className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/10 hover:text-white active:scale-95"
-        >
-          Select all
-        </button>
-        {selectedSymbols.length > 0 && (
+        <div className="flex gap-2">
           <button
-            onClick={handleDeselectAll}
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/10 hover:text-white active:scale-95"
+            onClick={handleSelectTop10}
+            className="flex-1 sm:flex-none px-4 py-3 rounded-xl text-sm text-white/60 bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:text-white transition-all"
           >
-            Clear
+            Top 10
           </button>
-        )}
-        
-        {searchQuery && (
-          <span className="ml-auto text-sm text-white/40">
-            {filteredSymbols.length} found
-          </span>
-        )}
+          <button
+            onClick={handleSelectAll}
+            className="flex-1 sm:flex-none px-4 py-3 rounded-xl text-sm text-white/60 bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:text-white transition-all"
+          >
+            Select all
+          </button>
+        </div>
       </div>
 
-      {/* Assets Grid */}
-      <div className="rounded-2xl border border-white/10 w-full bg-white/[0.02] p-3 mb-6 h-[420px]">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-[#e3b8ff]" />
-          </div>
-        ) : filteredSymbols.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <p className="text-white/40 mb-2">No assets found</p>
-            <button 
-              onClick={() => setSearchQuery("")}
-              className="text-sm text-[#e3b8ff]/70 hover:text-[#e3b8ff] transition"
-            >
-              Clear search
-            </button>
-          </div>
-        ) : (
-          <div className="h-full overflow-y-auto pr-1">
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2">
-              {filteredSymbols.map((symbol) => {
-                const isSelected = selectedSymbols.includes(symbol);
-                const isBlocked = !isSelected && atLimit;
-
-                return (
-                  <button
-                    key={symbol}
-                    onClick={() => !isBlocked && toggleSymbol(symbol)}
-                    disabled={isBlocked}
-                    className={`
-                      relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all
-                      ${isSelected 
-                        ? "bg-[#e3b8ff]/10 border-[#e3b8ff]/40" 
-                        : "bg-white/[0.02] border-transparent hover:bg-white/[0.05] hover:border-white/10"
-                      }
-                      ${isBlocked ? "opacity-30 cursor-not-allowed" : "cursor-pointer active:scale-95"}
-                    `}
-                  >
-                    <div className={`
-                      h-11 w-11 grid place-items-center rounded-full transition-colors
-                      ${isSelected ? "bg-[#e3b8ff]/20" : "bg-white/[0.05]"}
-                    `}>
-                      {!failedImg[symbol] ? (
-                        <Image
-                          width={28}
-                          height={28}
-                          src={`/assets/${symbol.toLowerCase()}.png`}
-                          alt={symbol}
-                          className="h-6 w-6 object-contain"
-                          onError={() => setFailedImg((p) => ({ ...p, [symbol]: true }))}
-                        />
-                      ) : (
-                        <span className={`text-xs font-bold ${isSelected ? "text-[#e3b8ff]" : "text-white/40"}`}>
-                          {symbol.slice(0, 2)}
-                        </span>
-                      )}
-                    </div>
-
-                    <span className={`text-[11px] font-medium truncate w-full text-center transition-colors ${isSelected ? "text-[#e3b8ff]" : "text-white/60"}`}>
-                      {symbol}
-                    </span>
-
-                    {isSelected && (
-                      <div className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-[#e3b8ff] grid place-items-center">
-                        <svg className="h-2.5 w-2.5 text-black" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+      {/* MOBILE: Two stacked vertical lists */}
+      <div className="sm:hidden space-y-4">
+        {/* Selected list */}
+        {selectedSymbols.length > 0 && (
+          <div className="rounded-2xl border border-[#e3b8ff]/20 bg-[#e3b8ff]/[0.04] overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-[#e3b8ff]/10">
+              <span className="text-xs font-medium text-[#e3b8ff]">
+                Selected ({selectedSymbols.length})
+              </span>
+              <button
+                onClick={handleDeselectAll}
+                className="text-xs text-white/40 hover:text-white transition"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="max-h-[200px] overflow-y-auto divide-y divide-[#e3b8ff]/10">
+              {selectedSymbols.map((symbol) => (
+                <MobileListItem
+                  key={symbol}
+                  symbol={symbol}
+                  selected
+                  onClick={() => removeSymbol(symbol)}
+                />
+              ))}
             </div>
           </div>
         )}
+
+        {/* Available list */}
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+          <div className="px-3 py-2 border-b border-white/[0.06]">
+            <span className="text-xs font-medium text-white/40">
+              Available ({unselectedSymbols.length})
+            </span>
+          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-[#e3b8ff]" />
+            </div>
+          ) : unselectedSymbols.length === 0 ? (
+            <div className="py-8 text-center text-white/40 text-sm">
+              {selectedSymbols.length > 0 ? "All selected" : "No assets found"}
+            </div>
+          ) : (
+            <div className="max-h-[300px] overflow-y-auto divide-y divide-white/[0.04]">
+              {unselectedSymbols.map((symbol) => (
+                <MobileListItem
+                  key={symbol}
+                  symbol={symbol}
+                  selected={false}
+                  onClick={() => addSymbol(symbol)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* DESKTOP: Original layout */}
+      <div className="hidden sm:block">
+        {/* Selected assets bar */}
+        {selectedSymbols.length > 0 && (
+          <div className="mb-6 p-4 rounded-2xl bg-[#e3b8ff]/[0.06] border border-[#e3b8ff]/20">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-[#e3b8ff]">
+                {selectedSymbols.length} selected
+                <span className="text-white/30 ml-1">/ {maxSelection}</span>
+              </span>
+              <button
+                onClick={handleDeselectAll}
+                className="text-xs text-white/40 hover:text-white transition px-2 py-1 rounded-lg hover:bg-white/[0.05]"
+              >
+                Clear all
+              </button>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              {selectedSymbols.map((symbol) => (
+                <button
+                  key={symbol}
+                  onClick={() => removeSymbol(symbol)}
+                  className="group flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-[#e3b8ff]/10 hover:bg-red-500/20 border border-[#e3b8ff]/30 hover:border-red-500/40 transition-all"
+                >
+                  <CoinIcon symbol={symbol} size={24} selected />
+                  <span className="text-sm text-[#e3b8ff] group-hover:text-red-400 transition-colors">
+                    {symbol}
+                  </span>
+                  <svg
+                    className="h-3.5 w-3.5 text-[#e3b8ff]/50 group-hover:text-red-400 transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Available assets */}
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-[#e3b8ff]" />
+            </div>
+          ) : unselectedSymbols.length === 0 && selectedSymbols.length > 0 ? (
+            <div className="py-12 text-center text-white/40">
+              All assets selected
+            </div>
+          ) : unselectedSymbols.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-white/40 mb-2">No assets found</p>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-sm text-[#e3b8ff]/60 hover:text-[#e3b8ff]"
+              >
+                Clear search
+              </button>
+            </div>
+          ) : (
+            <div className="max-h-[400px] overflow-y-auto">
+              {unselectedSymbols.map((symbol, i) => (
+                <button
+                  key={symbol}
+                  onClick={() => addSymbol(symbol)}
+                  className={`
+                    w-full flex items-center gap-4 px-4 py-3 transition-all
+                    ${i !== 0 ? "border-t border-white/[0.04]" : ""}
+                    hover:bg-white/[0.04] active:bg-white/[0.06]
+                  `}
+                >
+                  <CoinIcon symbol={symbol} size={36} />
+                  <span className="text-sm font-medium text-white/80">{symbol}</span>
+                  <svg
+                    className="ml-auto h-5 w-5 text-white/20"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Continue */}
@@ -215,11 +307,10 @@ export default function AssetsBlock({
         onClick={() => setStep(step + 1)}
         disabled={selectedSymbols.length === 0}
         className={`
-          w-full sm:w-auto flex items-center justify-center gap-2 
-          rounded-xl px-8 py-3.5 text-sm font-semibold transition-all
+          mt-6 w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold transition-all
           ${selectedSymbols.length > 0
-            ? "bg-[#e3b8ff] text-black hover:bg-[#d4a8ff] active:scale-[0.98]"
-            : "bg-white/5 text-white/30 cursor-not-allowed"
+            ? "bg-[#e3b8ff] text-black hover:bg-[#d4a8ff] active:scale-[0.99]"
+            : "bg-white/[0.04] text-white/30 cursor-not-allowed"
           }
         `}
       >
@@ -227,7 +318,7 @@ export default function AssetsBlock({
           "Select assets to continue"
         ) : (
           <>
-            Continue with {selectedSymbols.length} asset{selectedSymbols.length !== 1 ? 's' : ''}
+            Continue
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>

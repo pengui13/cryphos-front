@@ -467,18 +467,7 @@ export default function BotsFactory() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12 w-full text-center"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 backdrop-blur-xl"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-purple-500" />
-            </span>
-            <span className="text-xs font-medium text-white/70">Bot Factory</span>
-          </motion.div>
+
 
           <h1 className="mb-4 bg-gradient-to-br from-white to-white/60 bg-clip-text text-5xl font-bold tracking-tight text-transparent lg:text-6xl">
             {titles[step]}

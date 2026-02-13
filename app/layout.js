@@ -1,5 +1,5 @@
 "use client";
-
+import '../polyfills.js'
 import React, { useState, useEffect, useRef } from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
