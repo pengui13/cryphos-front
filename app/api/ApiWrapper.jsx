@@ -316,6 +316,16 @@ export async function GetTelegramInfo() {
   });
 }
 
+
+export function GetFearAndGreed(onSuccess, onError) {
+  return apiRequest({
+    method: "GET",
+    endpoint: `${BASE_URL}bots/fng/`,
+    onSuccess: (json) => onSuccess?.(json),
+    onError: (err) => onError?.(err),
+  });
+}
+
 export async function TogglePublishing(botId, setInfo) {
   apiRequest({
     endpoint: `${BASE_URL}bots/toggle_publishing/${botId}/`,

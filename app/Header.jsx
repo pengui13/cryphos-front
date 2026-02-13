@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, FlaskConical, Bot, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { Menu, X, FlaskConical, Bot, Settings as SettingsIcon, LogOut, BarChart3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function NavItem({ href, label, icon: Icon, active, onClick }) {
@@ -41,6 +41,7 @@ export default function Header({ ping }) {
   const nav = [
     { href: "/lab", label: "Lab", icon: FlaskConical },
     { href: "/bots", label: "Bots", icon: Bot },
+    { href: "/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/settings", label: "Settings", icon: SettingsIcon },
   ];
 
