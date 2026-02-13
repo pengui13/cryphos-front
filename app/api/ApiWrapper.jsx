@@ -325,6 +325,14 @@ export function GetFearAndGreed(onSuccess, onError) {
     onError: (err) => onError?.(err),
   });
 }
+export function GetFundingRates(onSuccess, onError) {
+  return apiRequest({
+    method: "GET",
+    endpoint: `${BASE_URL}bots/funding/`,
+    onSuccess: (json) => onSuccess?.(json),
+    onError: (err) => onError?.(err),
+  });
+}
 
 export async function TogglePublishing(botId, setInfo) {
   apiRequest({
