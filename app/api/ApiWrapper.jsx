@@ -180,6 +180,7 @@ const indicators = [
     "bollinger_bands",
     "obv",
     "atr",
+    "ema",
     "sr",  
 ];
 
@@ -332,6 +333,39 @@ export function GetFundingRates(onSuccess, onError) {
     onSuccess: (json) => onSuccess?.(json),
     onError: (err) => onError?.(err),
   });
+}
+
+export function subscribeLiquidations(onMessage, onError, onClose) {
+  const ws = new WebSocket(`${BASE_URL}ws/liquidations/`);
+
+  ws.onopen = () => {
+    console.log("Liquidations WebSocket connected");
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      onMessage?.(data);
+    } catch (err) {
+      console.error("Failed to parse liquidation:", err);
+    }
+  };
+
+  ws.onerror = (error) => {
+    console.error("Liquidations WebSocket error:", error);
+    onError?.(error);
+  };
+
+  ws.onclose = (event) => {
+    console.log("Liquidations WebSocket closed:", event.code);
+    onClose?.(event);
+  };
+
+  return () => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+  };
 }
 
 export async function TogglePublishing(botId, setInfo) {

@@ -289,46 +289,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* TESTIMONIALS */}
-        <section className="relative py-16 sm:py-32">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true, margin: "-50px" }}
-            className="mb-12 text-center sm:mb-20"
-          >
-            <h2 className="bg-gradient-to-br from-white to-white/60 bg-clip-text px-4 text-4xl font-semibold leading-tight tracking-tight text-transparent sm:text-5xl lg:text-6xl">
-              Trusted by experts
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl px-4 text-base text-white/50 sm:mt-6 sm:text-xl">
-              Professional traders who demand precision
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
-            {testimonials.map((testimonial, i) => (
-              <GlassmorphicCard key={i} delay={i * 0.1}>
-                <div className="mb-4 flex items-start gap-3 sm:mb-6 sm:gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-sm font-bold sm:h-14 sm:w-14 sm:rounded-2xl sm:text-lg">
-                    {testimonial.avatar}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="truncate text-sm font-semibold sm:text-base">{testimonial.name}</div>
-                      <svg className="h-4 w-4 shrink-0 text-blue-400 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="mt-0.5 truncate text-xs text-white/50 sm:text-sm">{testimonial.role}</div>
-                    <div className="truncate text-xs text-white/40">{testimonial.company}</div>
-                  </div>
-                </div>
-                <p className="text-sm leading-relaxed text-white/70 sm:text-base">"{testimonial.text}"</p>
-              </GlassmorphicCard>
-            ))}
-          </div>
-        </section>
 
         {/* FINAL CTA */}
         <section className="relative py-16 sm:py-32">

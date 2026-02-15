@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import RsiSettings from "./RsiSettings";
 import BollingerBandsSettings from "./BollingerBandsSettings";
 import SupportResistanceSettings from "./SupportResistanceSettings";
+import EmaSettings from "./EmaSettings";
 
 export default function ConfigureBot({
   step,
@@ -16,34 +17,37 @@ export default function ConfigureBot({
   const [isCreating, setIsCreating] = useState(false);
 
   // RSI state
-  const [rsiEnabled, setRsiEnabled] = useState(botSettings?.rsi ?? false);
-  const [rsiSettings, setRsiSettings] = useState(
-    botSettings?.rsiSettings ?? {}
-  );
+  const [rsiEnabled, setRsiEnabled] = useState(!!botSettings?.rsi);
+  const [rsiSettings, setRsiSettings] = useState(botSettings?.rsi ?? {});
 
   // Bollinger Bands state
-  const [bbEnabled, setBbEnabled] = useState(botSettings?.bb ?? false);
-  const [bbSettings, setBbSettings] = useState(botSettings?.bbSettings ?? {});
+  const [bbEnabled, setBbEnabled] = useState(!!botSettings?.bb);
+  const [bbSettings, setBbSettings] = useState(botSettings?.bb ?? {});
 
   // Support & Resistance state
-  const [srEnabled, setSrEnabled] = useState(botSettings?.sr ?? false);
-  const [srSettings, setSrSettings] = useState(botSettings?.srSettings ?? {});
+  const [srEnabled, setSrEnabled] = useState(!!botSettings?.sr);
+  const [srSettings, setSrSettings] = useState(botSettings?.sr ?? {});
+
+  // EMA state
+  const [emaEnabled, setEmaEnabled] = useState(!!botSettings?.ema);
+  const [emaSettings, setEmaSettings] = useState(botSettings?.ema ?? {});
 
   // Update parent settings whenever anything changes
   useEffect(() => {
-    const updatedSettings = {
-      ...botSettings,
-      // Only include enabled indicators with their settings
-      ...(rsiEnabled && { rsi: rsiSettings }),
-      ...(bbEnabled && { bb: bbSettings }),
-      ...(srEnabled && { sr: srSettings }),
-    };
-    
-    // Remove disabled indicators from payload
-    if (!rsiEnabled) delete updatedSettings.rsi;
-    if (!bbEnabled) delete updatedSettings.bb;
-    if (!srEnabled) delete updatedSettings.sr;
-    
+    const updatedSettings = { ...botSettings };
+
+    if (rsiEnabled) updatedSettings.rsi = rsiSettings;
+    else delete updatedSettings.rsi;
+
+    if (bbEnabled) updatedSettings.bb = bbSettings;
+    else delete updatedSettings.bb;
+
+    if (srEnabled) updatedSettings.sr = srSettings;
+    else delete updatedSettings.sr;
+
+    if (emaEnabled) updatedSettings.ema = emaSettings;
+    else delete updatedSettings.ema;
+
     setBotSettings(updatedSettings);
   }, [
     rsiEnabled,
@@ -52,11 +56,13 @@ export default function ConfigureBot({
     bbSettings,
     srEnabled,
     srSettings,
+    emaEnabled,
+    emaSettings,
+    setBotSettings,
   ]);
 
   const handleCreateBot = async () => {
-    // Check at least one indicator is enabled
-    if (!rsiEnabled && !bbEnabled && !srEnabled) {
+    if (!rsiEnabled && !bbEnabled && !srEnabled && !emaEnabled) {
       alert("Please enable at least one indicator");
       return;
     }
@@ -71,7 +77,9 @@ export default function ConfigureBot({
     }
   };
 
-  const enabledCount = [rsiEnabled, bbEnabled, srEnabled].filter(Boolean).length;
+  const enabledCount = [rsiEnabled, bbEnabled, srEnabled, emaEnabled].filter(
+    Boolean
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -84,7 +92,11 @@ export default function ConfigureBot({
           Enable and customize technical indicators for your bot
         </p>
         <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5">
-          <div className={`h-2 w-2 rounded-full ${enabledCount > 0 ? 'bg-white' : 'bg-white/30'}`} />
+          <div
+            className={`h-2 w-2 rounded-full ${
+              enabledCount > 0 ? "bg-white" : "bg-white/30"
+            }`}
+          />
           <span className="text-sm text-white/70">
             {enabledCount} {enabledCount === 1 ? "indicator" : "indicators"}{" "}
             enabled
@@ -101,6 +113,16 @@ export default function ConfigureBot({
             setEnabled={setRsiEnabled}
             settings={rsiSettings}
             setSettings={setRsiSettings}
+          />
+        </div>
+
+        {/* EMA */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <EmaSettings
+            enabled={emaEnabled}
+            setEnabled={setEmaEnabled}
+            settings={emaSettings}
+            setSettings={setEmaSettings}
           />
         </div>
 
@@ -145,11 +167,7 @@ export default function ConfigureBot({
         >
           {isCreating ? (
             <span className="flex items-center gap-2">
-              <svg
-                className="h-5 w-5 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle
                   className="opacity-25"
                   cx="12"
