@@ -5,19 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GetFearAndGreed, GetFundingRates, subscribeLiquidations } from "../api/ApiWrapper";
 import { usePing } from "../providers";
 import AuthScreen from "../components/AuthScreen.jsx";
-import Image from "next/image";
 
 // ============ HELPERS ============
 function formatUSD(value) {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
   return `$${value.toFixed(0)}`;
-}
-
-function formatPrice(price) {
-  if (price >= 1000) return price.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  if (price >= 1) return price.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  return price.toLocaleString(undefined, { maximumFractionDigits: 6 });
 }
 
 function timeAgo(timestamp) {
@@ -105,13 +98,12 @@ const TrendingDown = memo(({ className }) => (
 const AssetLogo = memo(({ symbol, size = 20 }) => {
   const [hasError, setHasError] = useState(false);
   const assetName = symbol?.replace("USDT", "").toLowerCase() || "";
+  const displayText = assetName.toUpperCase().slice(0, 2) || "?";
   
   if (hasError || !assetName) {
-    // Fallback: show first 1-2 letters in a colored circle
-    const displayText = assetName.toUpperCase().slice(0, 2) || "?";
     return (
       <div 
-        className="flex items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60"
+        className="flex items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60 shrink-0"
         style={{ width: size, height: size }}
       >
         {displayText}
@@ -120,12 +112,13 @@ const AssetLogo = memo(({ symbol, size = 20 }) => {
   }
 
   return (
-    <Image
+    <img
       src={`/assets/${assetName}.png`}
       alt={assetName}
       width={size}
       height={size}
-      className="rounded-full"
+      className="rounded-full shrink-0"
+      style={{ width: size, height: size }}
       onError={() => setHasError(true)}
     />
   );
@@ -135,7 +128,6 @@ AssetLogo.displayName = "AssetLogo";
 
 // ============ LIVE TIME COMPONENT ============
 const LiveTimeAgo = memo(({ timestamp, tick }) => {
-  // tick prop forces re-render every second
   return (
     <span className="text-xs text-white/30 tabular-nums w-8 text-right">
       {timeAgo(timestamp)}
@@ -155,7 +147,6 @@ const LiquidationRow = memo(({ liq, isNew, tick }) => {
     <div 
       className={`flex items-center justify-between py-3 border-b border-white/5 transition-colors duration-300 ${isNew ? "bg-white/[0.05]" : ""}`}
     >
-      {/* Left: Logo + Symbol + Side */}
       <div className="flex items-center gap-2.5">
         <AssetLogo symbol={liq.symbol} size={24} />
         <div className="flex items-center gap-1.5">
@@ -168,7 +159,6 @@ const LiquidationRow = memo(({ liq, isNew, tick }) => {
         </span>
       </div>
 
-      {/* Right: Size + Time */}
       <div className="flex items-center gap-3">
         <span className={`text-sm font-medium tabular-nums ${isLong ? "text-red-400" : "text-emerald-400"}`}>
           {formatUSD(liq.usd)}
@@ -200,29 +190,24 @@ FundingRow.displayName = "FundingRow";
 export default function Analytics() {
   const ping = usePing();
 
-  // FNG State
   const [fng, setFng] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Funding Rates State
   const [fundingRates, setFundingRates] = useState([]);
   const [fundingLoading, setFundingLoading] = useState(true);
   const [showFundingInfo, setShowFundingInfo] = useState(false);
 
-  // Liquidations State
   const [liquidations, setLiquidations] = useState([]);
   const [liqStats, setLiqStats] = useState({ long_usd: 0, short_usd: 0, long_count: 0, short_count: 0 });
   const [connected, setConnected] = useState(false);
   const [newestId, setNewestId] = useState(null);
   
-  // Tick for real-time updates
   const [tick, setTick] = useState(0);
   
   const soundEnabledRef = useRef(false);
   const unsubscribeRef = useRef(null);
   const audioRef = useRef(null);
 
-  // ============ REAL-TIME TICK ============
   useEffect(() => {
     const interval = setInterval(() => {
       setTick(t => t + 1);
@@ -230,7 +215,6 @@ export default function Analytics() {
     return () => clearInterval(interval);
   }, []);
 
-  // ============ DATA FETCHING ============
   useEffect(() => {
     if (!ping) return;
     fetchFNG();
@@ -310,7 +294,6 @@ export default function Analytics() {
     }
   }, []);
 
-  // ============ HELPERS ============
   const getFNGColor = useCallback((value) => {
     if (value <= 24) return "text-red-400";
     if (value <= 49) return "text-orange-400";
@@ -326,19 +309,16 @@ export default function Analytics() {
     return "text-white/50";
   }, []);
 
-  // ============ AUTH CHECK ============
   if (!ping) {
     return <AuthScreen />;
   }
 
-  // ============ COMPUTED VALUES ============
   const fngValue = fng?.value || 0;
   const fngClass = fng?.class || "Unknown";
   const sortedFunding = [...fundingRates].sort((a, b) => Math.abs(parseFloat(b.rate)) - Math.abs(parseFloat(a.rate)));
   const totalLiqUSD = liqStats.long_usd + liqStats.short_usd;
   const longRatio = totalLiqUSD > 0 ? (liqStats.long_usd / totalLiqUSD) * 100 : 50;
 
-  // ============ RENDER ============
   return (
     <div className="min-h-screen bg-neutral-950 text-white px-4 py-4 sm:p-6">
       <audio ref={audioRef} src="/liquidation.mp3" preload="auto" />
@@ -352,7 +332,7 @@ export default function Analytics() {
           </div>
           <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${connected ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
             {connected ? <Wifi /> : <WifiOff />}
-            <span className="hidden xs:inline">{connected ? "Live" : "Offline"}</span>
+            <span className="hidden sm:inline">{connected ? "Live" : "Offline"}</span>
             {connected && (
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -362,7 +342,7 @@ export default function Analytics() {
           </div>
         </header>
 
-        {/* Top Row: FNG + Funding - Stack on mobile */}
+        {/* Top Row */}
         <div className="mb-4 sm:mb-6 grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
           
           {/* Fear & Greed */}
@@ -430,7 +410,6 @@ export default function Analytics() {
 
         {/* Liquidations */}
         <div className="rounded-xl sm:rounded-2xl border border-white/5 bg-white/[0.02] p-4 sm:p-6">
-          {/* Header + Stats */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-white/40">
@@ -439,7 +418,6 @@ export default function Analytics() {
               </div>
             </div>
 
-            {/* Stats Row - Responsive */}
             <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="text-white/30">L</span>
@@ -458,7 +436,6 @@ export default function Analytics() {
             </div>
           </div>
 
-          {/* Feed - Card style for mobile */}
           <div className="max-h-[50vh] sm:max-h-[400px] overflow-y-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             {liquidations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -499,7 +476,6 @@ export default function Analytics() {
               className="relative w-full sm:max-w-md"
             >
               <div className="rounded-t-2xl sm:rounded-2xl border border-white/10 bg-neutral-900 p-5 sm:p-6">
-                {/* Drag handle on mobile */}
                 <div className="sm:hidden w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
                 
                 <div className="mb-4 flex items-center justify-between">
