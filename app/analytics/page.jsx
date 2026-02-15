@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GetFearAndGreed, GetFundingRates, subscribeLiquidations } from "../api/ApiWrapper";
 import { usePing } from "../providers";
@@ -8,103 +8,133 @@ import AuthScreen from "../components/AuthScreen.jsx";
 
 // ============ HELPERS ============
 function formatUSD(value) {
+  if (typeof value !== "number" || isNaN(value)) return "$0";
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
   return `$${value.toFixed(0)}`;
 }
 
 function timeAgo(timestamp) {
-  const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
-  if (diff < 5) return "now";
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  return `${Math.floor(diff / 3600)}h`;
+  try {
+    const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+    if (isNaN(diff) || diff < 0) return "now";
+    if (diff < 5) return "now";
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    return `${Math.floor(diff / 3600)}h`;
+  } catch {
+    return "now";
+  }
 }
 
-// ============ ICONS (memoized) ============
-const Gauge = memo(({ className }) => (
-  <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
-  </svg>
-));
+// ============ ICONS ============
+function Gauge({ className }) {
+  return (
+    <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+    </svg>
+  );
+}
 
-const Percent = memo(({ className }) => (
-  <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 16m-3-16a3 3 0 110 6 3 3 0 010-6zm-10 10a3 3 0 110 6 3 3 0 010-6z" />
-  </svg>
-));
+function Percent({ className }) {
+  return (
+    <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 16m-3-16a3 3 0 110 6 3 3 0 010-6zm-10 10a3 3 0 110 6 3 3 0 010-6z" />
+    </svg>
+  );
+}
 
-const Flame = memo(({ className }) => (
-  <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
-  </svg>
-));
+function Flame({ className }) {
+  return (
+    <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+    </svg>
+  );
+}
 
-const ArrowUp = memo(() => (
-  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-  </svg>
-));
+function ArrowUp() {
+  return (
+    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+    </svg>
+  );
+}
 
-const ArrowDown = memo(() => (
-  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-  </svg>
-));
+function ArrowDown() {
+  return (
+    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
 
-const Wifi = memo(() => (
-  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z" />
-  </svg>
-));
+function WifiIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z" />
+    </svg>
+  );
+}
 
-const WifiOff = memo(() => (
-  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.5 16.5l1.5 1.5 1.5-1.5M8.288 15.038a5.25 5.25 0 014.245-1.5M5.106 11.856a10.003 10.003 0 015.654-2.74M1.924 8.674a14.001 14.001 0 016.072-2.816" />
-  </svg>
-));
+function WifiOffIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.5 16.5l1.5 1.5 1.5-1.5M8.288 15.038a5.25 5.25 0 014.245-1.5M5.106 11.856a10.003 10.003 0 015.654-2.74M1.924 8.674a14.001 14.001 0 016.072-2.816" />
+    </svg>
+  );
+}
 
-const HelpCircle = memo(({ className }) => (
-  <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-  </svg>
-));
+function HelpCircle({ className }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+    </svg>
+  );
+}
 
-const X = memo(({ className }) => (
-  <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-  </svg>
-));
+function XIcon({ className }) {
+  return (
+    <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
 
-const Zap = memo(({ className }) => (
-  <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-  </svg>
-));
+function Zap({ className }) {
+  return (
+    <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  );
+}
 
-const TrendingUp = memo(({ className }) => (
-  <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-  </svg>
-));
+function TrendingUp({ className }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+    </svg>
+  );
+}
 
-const TrendingDown = memo(({ className }) => (
-  <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
-  </svg>
-));
+function TrendingDown({ className }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
+    </svg>
+  );
+}
 
 // ============ ASSET LOGO COMPONENT ============
-const AssetLogo = memo(({ symbol, size = 20 }) => {
+function AssetLogo({ symbol, size = 20 }) {
   const [hasError, setHasError] = useState(false);
-  const assetName = symbol?.replace("USDT", "").toLowerCase() || "";
+  const assetName = (symbol || "").replace("USDT", "").toLowerCase();
   const displayText = assetName.toUpperCase().slice(0, 2) || "?";
   
   if (hasError || !assetName) {
     return (
       <div 
-        className="flex items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60 shrink-0"
-        style={{ width: size, height: size }}
+        className="flex items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60"
+        style={{ width: size, height: size, minWidth: size, minHeight: size }}
       >
         {displayText}
       </div>
@@ -117,31 +147,20 @@ const AssetLogo = memo(({ symbol, size = 20 }) => {
       alt={assetName}
       width={size}
       height={size}
-      className="rounded-full shrink-0"
-      style={{ width: size, height: size }}
+      className="rounded-full object-cover"
+      style={{ width: size, height: size, minWidth: size, minHeight: size }}
       onError={() => setHasError(true)}
     />
   );
-});
+}
 
-AssetLogo.displayName = "AssetLogo";
-
-// ============ LIVE TIME COMPONENT ============
-const LiveTimeAgo = memo(({ timestamp, tick }) => {
-  return (
-    <span className="text-xs text-white/30 tabular-nums w-8 text-right">
-      {timeAgo(timestamp)}
-    </span>
-  );
-});
-
-LiveTimeAgo.displayName = "LiveTimeAgo";
-
-// ============ MEMOIZED LIQUIDATION ROW ============
-const LiquidationRow = memo(({ liq, isNew, tick }) => {
+// ============ LIQUIDATION ROW ============
+function LiquidationRow({ liq, isNew, tick }) {
+  if (!liq) return null;
+  
   const isLong = liq.type === "long";
-  const isBig = liq.usd >= 100_000;
-  const symbol = liq.symbol?.replace("USDT", "") || "???";
+  const isBig = (liq.usd || 0) >= 100_000;
+  const symbol = (liq.symbol || "???").replace("USDT", "");
 
   return (
     <div 
@@ -161,30 +180,34 @@ const LiquidationRow = memo(({ liq, isNew, tick }) => {
 
       <div className="flex items-center gap-3">
         <span className={`text-sm font-medium tabular-nums ${isLong ? "text-red-400" : "text-emerald-400"}`}>
-          {formatUSD(liq.usd)}
+          {formatUSD(liq.usd || 0)}
         </span>
-        <LiveTimeAgo timestamp={liq.ts} tick={tick} />
+        <span className="text-xs text-white/30 tabular-nums w-8 text-right">
+          {timeAgo(liq.ts)}
+        </span>
       </div>
     </div>
   );
-});
+}
 
-LiquidationRow.displayName = "LiquidationRow";
-
-// ============ MEMOIZED FUNDING RATE ROW ============
-const FundingRow = memo(({ item, getFundingColor }) => (
-  <div className="flex items-center justify-between py-1.5">
-    <div className="flex items-center gap-2">
-      <AssetLogo symbol={item.asset + "USDT"} size={18} />
-      <span className="text-sm text-white/60">{item.asset}</span>
+// ============ FUNDING ROW ============
+function FundingRow({ item, getFundingColor }) {
+  if (!item) return null;
+  
+  const rate = parseFloat(item.rate) || 0;
+  
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <div className="flex items-center gap-2">
+        <AssetLogo symbol={(item.asset || "") + "USDT"} size={18} />
+        <span className="text-sm text-white/60">{item.asset || "?"}</span>
+      </div>
+      <span className={`text-sm font-medium tabular-nums ${getFundingColor(item.rate)}`}>
+        {rate >= 0 ? "+" : ""}{(rate * 100).toFixed(3)}%
+      </span>
     </div>
-    <span className={`text-sm font-medium tabular-nums ${getFundingColor(item.rate)}`}>
-      {parseFloat(item.rate) >= 0 ? "+" : ""}{(parseFloat(item.rate) * 100).toFixed(3)}%
-    </span>
-  </div>
-));
-
-FundingRow.displayName = "FundingRow";
+  );
+}
 
 // ============ MAIN COMPONENT ============
 export default function Analytics() {
@@ -208,6 +231,7 @@ export default function Analytics() {
   const unsubscribeRef = useRef(null);
   const audioRef = useRef(null);
 
+  // Real-time tick for time updates
   useEffect(() => {
     const interval = setInterval(() => {
       setTick(t => t + 1);
@@ -215,18 +239,11 @@ export default function Analytics() {
     return () => clearInterval(interval);
   }, []);
 
+  // Data fetching
   useEffect(() => {
     if (!ping) return;
-    fetchFNG();
-    fetchFundingRates();
-    connectLiquidations();
-
-    return () => {
-      if (unsubscribeRef.current) unsubscribeRef.current();
-    };
-  }, [ping]);
-
-  function fetchFNG() {
+    
+    // Fetch FNG
     setLoading(true);
     GetFearAndGreed(
       (data) => {
@@ -238,9 +255,8 @@ export default function Analytics() {
         setLoading(false);
       }
     );
-  }
 
-  function fetchFundingRates() {
+    // Fetch Funding Rates
     setFundingLoading(true);
     GetFundingRates(
       (data) => {
@@ -252,47 +268,60 @@ export default function Analytics() {
         setFundingLoading(false);
       }
     );
-  }
 
-  function connectLiquidations() {
-    const connect = () => {
-      unsubscribeRef.current = subscribeLiquidations(
-        (data) => {
-          setConnected(true);
-          handleLiquidation(data);
-        },
-        () => setConnected(false),
-        () => {
-          setConnected(false);
-          setTimeout(connect, 3000);
-        }
-      );
+    // Connect to liquidations websocket
+    const connectWs = () => {
+      try {
+        unsubscribeRef.current = subscribeLiquidations(
+          (data) => {
+            setConnected(true);
+            if (data) {
+              const liqId = `${data.ts || Date.now()}-${data.symbol || "unknown"}-${data.usd || 0}`;
+              
+              setLiquidations((prev) => {
+                const newLiq = { ...data, id: liqId };
+                return [newLiq, ...prev].slice(0, 50);
+              });
+              
+              setLiqStats((prev) => ({
+                ...prev,
+                [`${data.type}_usd`]: (prev[`${data.type}_usd`] || 0) + (data.usd || 0),
+                [`${data.type}_count`]: (prev[`${data.type}_count`] || 0) + 1,
+              }));
+
+              setNewestId(liqId);
+              setTimeout(() => setNewestId(null), 500);
+
+              if ((data.usd || 0) >= 50_000 && soundEnabledRef.current && audioRef.current) {
+                audioRef.current.currentTime = 0;
+                audioRef.current.play().catch(() => {});
+              }
+            }
+          },
+          () => setConnected(false),
+          () => {
+            setConnected(false);
+            setTimeout(connectWs, 3000);
+          }
+        );
+      } catch (err) {
+        console.error("WebSocket error:", err);
+        setConnected(false);
+      }
     };
-    connect();
-  }
-
-  const handleLiquidation = useCallback((liq) => {
-    const liqId = `${liq.ts}-${liq.symbol}-${liq.usd}`;
     
-    setLiquidations((prev) => {
-      const newLiq = { ...liq, id: liqId };
-      return [newLiq, ...prev].slice(0, 50);
-    });
-    
-    setLiqStats((prev) => ({
-      ...prev,
-      [`${liq.type}_usd`]: (prev[`${liq.type}_usd`] || 0) + liq.usd,
-      [`${liq.type}_count`]: (prev[`${liq.type}_count`] || 0) + 1,
-    }));
+    connectWs();
 
-    setNewestId(liqId);
-    setTimeout(() => setNewestId(null), 500);
-
-    if (liq.usd >= 50_000 && soundEnabledRef.current && audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-    }
-  }, []);
+    return () => {
+      if (unsubscribeRef.current) {
+        try {
+          unsubscribeRef.current();
+        } catch (e) {
+          console.error("Cleanup error:", e);
+        }
+      }
+    };
+  }, [ping]);
 
   const getFNGColor = useCallback((value) => {
     if (value <= 24) return "text-red-400";
@@ -303,21 +332,25 @@ export default function Analytics() {
   }, []);
 
   const getFundingColor = useCallback((rate) => {
-    const r = parseFloat(rate) * 100;
+    const r = (parseFloat(rate) || 0) * 100;
     if (r >= 0.05) return "text-red-400";
     if (r <= -0.05) return "text-emerald-400";
     return "text-white/50";
   }, []);
 
+  // Auth check
   if (!ping) {
     return <AuthScreen />;
   }
 
+  // Computed values with safety checks
   const fngValue = fng?.value || 0;
   const fngClass = fng?.class || "Unknown";
-  const sortedFunding = [...fundingRates].sort((a, b) => Math.abs(parseFloat(b.rate)) - Math.abs(parseFloat(a.rate)));
-  const totalLiqUSD = liqStats.long_usd + liqStats.short_usd;
-  const longRatio = totalLiqUSD > 0 ? (liqStats.long_usd / totalLiqUSD) * 100 : 50;
+  const sortedFunding = [...fundingRates]
+    .filter(item => item && item.rate !== undefined)
+    .sort((a, b) => Math.abs(parseFloat(b.rate) || 0) - Math.abs(parseFloat(a.rate) || 0));
+  const totalLiqUSD = (liqStats.long_usd || 0) + (liqStats.short_usd || 0);
+  const longRatio = totalLiqUSD > 0 ? ((liqStats.long_usd || 0) / totalLiqUSD) * 100 : 50;
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white px-4 py-4 sm:p-6">
@@ -331,7 +364,7 @@ export default function Analytics() {
             <p className="text-xs sm:text-sm text-white/40">Market data & liquidations</p>
           </div>
           <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${connected ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
-            {connected ? <Wifi /> : <WifiOff />}
+            {connected ? <WifiIcon /> : <WifiOffIcon />}
             <span className="hidden sm:inline">{connected ? "Live" : "Offline"}</span>
             {connected && (
               <span className="relative flex h-1.5 w-1.5">
@@ -400,8 +433,12 @@ export default function Analytics() {
               <p className="text-xs sm:text-sm text-white/30 text-center py-6">No data</p>
             ) : (
               <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6">
-                {sortedFunding.slice(0, 6).map((item) => (
-                  <FundingRow key={item.id} item={item} getFundingColor={getFundingColor} />
+                {sortedFunding.slice(0, 6).map((item, index) => (
+                  <FundingRow 
+                    key={item.id || item.asset || index} 
+                    item={item} 
+                    getFundingColor={getFundingColor} 
+                  />
                 ))}
               </div>
             )}
@@ -421,11 +458,11 @@ export default function Analytics() {
             <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="text-white/30">L</span>
-                <span className="font-medium text-red-400">{formatUSD(liqStats.long_usd)}</span>
+                <span className="font-medium text-red-400">{formatUSD(liqStats.long_usd || 0)}</span>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="text-white/30">S</span>
-                <span className="font-medium text-emerald-400">{formatUSD(liqStats.short_usd)}</span>
+                <span className="font-medium text-emerald-400">{formatUSD(liqStats.short_usd || 0)}</span>
               </div>
               <div className="flex-1 max-w-24 h-1.5 rounded-full bg-white/5 overflow-hidden">
                 <div
@@ -444,9 +481,9 @@ export default function Analytics() {
               </div>
             ) : (
               <div>
-                {liquidations.map((liq) => (
+                {liquidations.map((liq, index) => (
                   <LiquidationRow 
-                    key={liq.id} 
+                    key={liq.id || index} 
                     liq={liq} 
                     isNew={liq.id === newestId}
                     tick={tick}
@@ -467,7 +504,10 @@ export default function Analytics() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowFundingInfo(false)} />
+            <div 
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+              onClick={() => setShowFundingInfo(false)} 
+            />
 
             <motion.div
               initial={{ opacity: 0, y: 100 }}
@@ -484,7 +524,7 @@ export default function Analytics() {
                     onClick={() => setShowFundingInfo(false)}
                     className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition"
                   >
-                    <X className="h-5 w-5" />
+                    <XIcon className="h-5 w-5" />
                   </button>
                 </div>
 
