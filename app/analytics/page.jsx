@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GetFearAndGreed, GetFundingRates, subscribeLiquidations } from "../api/ApiWrapper";
 import { usePing } from "../providers";
 import AuthScreen from "../components/AuthScreen.jsx";
+import Image from "next/image";
 
 // ============ HELPERS ============
 function formatUSD(value) {
@@ -100,8 +101,52 @@ const TrendingDown = memo(({ className }) => (
   </svg>
 ));
 
-// ============ MEMOIZED LIQUIDATION ROW (Mobile Card) ============
-const LiquidationRow = memo(({ liq, isNew }) => {
+// ============ ASSET LOGO COMPONENT ============
+const AssetLogo = memo(({ symbol, size = 20 }) => {
+  const [hasError, setHasError] = useState(false);
+  const assetName = symbol?.replace("USDT", "").toLowerCase() || "";
+  
+  if (hasError || !assetName) {
+    // Fallback: show first 1-2 letters in a colored circle
+    const displayText = assetName.toUpperCase().slice(0, 2) || "?";
+    return (
+      <div 
+        className="flex items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60"
+        style={{ width: size, height: size }}
+      >
+        {displayText}
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={`/assets/${assetName}.png`}
+      alt={assetName}
+      width={size}
+      height={size}
+      className="rounded-full"
+      onError={() => setHasError(true)}
+    />
+  );
+});
+
+AssetLogo.displayName = "AssetLogo";
+
+// ============ LIVE TIME COMPONENT ============
+const LiveTimeAgo = memo(({ timestamp, tick }) => {
+  // tick prop forces re-render every second
+  return (
+    <span className="text-xs text-white/30 tabular-nums w-8 text-right">
+      {timeAgo(timestamp)}
+    </span>
+  );
+});
+
+LiveTimeAgo.displayName = "LiveTimeAgo";
+
+// ============ MEMOIZED LIQUIDATION ROW ============
+const LiquidationRow = memo(({ liq, isNew, tick }) => {
   const isLong = liq.type === "long";
   const isBig = liq.usd >= 100_000;
   const symbol = liq.symbol?.replace("USDT", "") || "???";
@@ -110,8 +155,9 @@ const LiquidationRow = memo(({ liq, isNew }) => {
     <div 
       className={`flex items-center justify-between py-3 border-b border-white/5 transition-colors duration-300 ${isNew ? "bg-white/[0.05]" : ""}`}
     >
-      {/* Left: Symbol + Side */}
-      <div className="flex items-center gap-3">
+      {/* Left: Logo + Symbol + Side */}
+      <div className="flex items-center gap-2.5">
+        <AssetLogo symbol={liq.symbol} size={24} />
         <div className="flex items-center gap-1.5">
           <span className="font-medium text-white text-sm">{symbol}</span>
           {isBig && <span className="text-[8px] text-yellow-500">●</span>}
@@ -127,9 +173,7 @@ const LiquidationRow = memo(({ liq, isNew }) => {
         <span className={`text-sm font-medium tabular-nums ${isLong ? "text-red-400" : "text-emerald-400"}`}>
           {formatUSD(liq.usd)}
         </span>
-        <span className="text-xs text-white/30 tabular-nums w-8 text-right">
-          {timeAgo(liq.ts)}
-        </span>
+        <LiveTimeAgo timestamp={liq.ts} tick={tick} />
       </div>
     </div>
   );
@@ -139,8 +183,11 @@ LiquidationRow.displayName = "LiquidationRow";
 
 // ============ MEMOIZED FUNDING RATE ROW ============
 const FundingRow = memo(({ item, getFundingColor }) => (
-  <div className="flex items-center justify-between py-1">
-    <span className="text-sm text-white/60">{item.asset}</span>
+  <div className="flex items-center justify-between py-1.5">
+    <div className="flex items-center gap-2">
+      <AssetLogo symbol={item.asset + "USDT"} size={18} />
+      <span className="text-sm text-white/60">{item.asset}</span>
+    </div>
     <span className={`text-sm font-medium tabular-nums ${getFundingColor(item.rate)}`}>
       {parseFloat(item.rate) >= 0 ? "+" : ""}{(parseFloat(item.rate) * 100).toFixed(3)}%
     </span>
@@ -168,9 +215,20 @@ export default function Analytics() {
   const [connected, setConnected] = useState(false);
   const [newestId, setNewestId] = useState(null);
   
+  // Tick for real-time updates
+  const [tick, setTick] = useState(0);
+  
   const soundEnabledRef = useRef(false);
   const unsubscribeRef = useRef(null);
   const audioRef = useRef(null);
+
+  // ============ REAL-TIME TICK ============
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // ============ DATA FETCHING ============
   useEffect(() => {
@@ -414,6 +472,7 @@ export default function Analytics() {
                     key={liq.id} 
                     liq={liq} 
                     isNew={liq.id === newestId}
+                    tick={tick}
                   />
                 ))}
               </div>
