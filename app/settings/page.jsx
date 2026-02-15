@@ -1,14 +1,56 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import Image from "next/image";
-import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import Snackbar from "../components/Snackbar";
 import { usePing } from "../providers";
 import { GetTelegramInfo, AddTelegram } from "../api/ApiWrapper";
+import AuthScreen from "../components/AuthScreen.jsx";
 
-function CopyChip({ value, label = value }) {
+// ============ ICONS ============
+function TelegramIcon({ className }) {
+  return (
+    <svg className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.98 1.26-5.6 3.7-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 3.99-1.74 6.65-2.89 7.98-3.45 3.8-1.59 4.59-1.87 5.1-1.87.11 0 .36.03.52.16.14.11.17.26.19.37.01.08.03.29.01.45z"/>
+    </svg>
+  );
+}
+
+function CheckIcon({ className }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+function CopyIcon({ className }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon({ className }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+  );
+}
+
+function UserIcon({ className }) {
+  return (
+    <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    </svg>
+  );
+}
+
+// ============ COPY BUTTON ============
+function CopyButton({ value }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -24,28 +66,24 @@ function CopyChip({ value, label = value }) {
   return (
     <button
       onClick={handleCopy}
-      className="group relative inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/10"
+      className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs font-medium text-white/60 transition hover:bg-white/10 hover:text-white/80"
     >
       {copied ? (
         <>
-          <svg className="h-3.5 w-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          Copied!
+          <CheckIcon className="h-3.5 w-3.5 text-emerald-400" />
+          <span className="text-emerald-400">Copied</span>
         </>
       ) : (
         <>
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <rect x="9" y="9" width="13" height="13" rx="2" />
-            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-          </svg>
-          {label}
+          <CopyIcon className="h-3.5 w-3.5" />
+          <span>Copy</span>
         </>
       )}
     </button>
   );
 }
 
+// ============ MAIN COMPONENT ============
 export default function SettingsPage() {
   const ping = usePing();
 
@@ -58,34 +96,30 @@ export default function SettingsPage() {
 
   const [tgNickname, setTgNickname] = useState("");
   const [tgInput, setTgInput] = useState("");
-  const [chatId, setChatId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-useEffect(() => {
-  if (!ping) return;
+  useEffect(() => {
+    if (!ping) return;
 
-  const loadTgInfo = async () => {
-    try {
-      const data = await GetTelegramInfo();
+    const loadTgInfo = async () => {
+      try {
+        const data = await GetTelegramInfo();
+        const nickname = data?.tg_nickname || "";
+        setTgNickname(nickname);
+        setTgInput(nickname);
+      } catch (err) {
+        console.error("Failed to load TG info:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      const nickname = data?.tg_nickname || "";
-      setTgNickname(nickname);
-      setTgInput(nickname);
-    } catch (err) {
-      console.error("Failed to load TG info:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadTgInfo();
+  }, [ping]);
 
-  loadTgInfo();
-}, [ping]);
-
-
-  const isConnected = Boolean(chatId);
+  const isConnected = Boolean(tgNickname);
   const nicknameChanged = tgInput.trim().replace(/^@/, "") !== tgNickname;
-  const hasNicknameSaved = Boolean(tgNickname);
 
   const handleSaveNickname = async () => {
     const nickname = tgInput.trim().replace(/^@/, "");
@@ -108,7 +142,7 @@ useEffect(() => {
         visible: true,
         status: true,
         type: "prime",
-        info: "Telegram nickname saved! Now send /start to the bot.",
+        info: "Telegram nickname saved!",
       });
     } catch (err) {
       setSnackData({
@@ -122,210 +156,145 @@ useEffect(() => {
     }
   };
 
+  // Auth check
   if (!ping) {
-    return (
-      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-6 text-white">
-        <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/20 blur-[150px]" />
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative text-center"
-        >
-          <Image
-            src="/padlock.png"
-            alt="Locked"
-            width={180}
-            height={180}
-            className="mx-auto mb-8 drop-shadow-[0_0_40px_rgba(168,85,247,0.4)]"
-          />
-
-          <h1 className="mb-3 bg-gradient-to-br from-white to-white/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent">
-            Authentication Required
-          </h1>
-          <p className="mx-auto max-w-md text-white/60">
-            Please log in to access settings
-          </p>
-
-          <div className="mt-8 flex justify-center gap-3">
-            <Link href="/login">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                className="rounded-2xl bg-white px-8 py-3 font-semibold text-black transition"
-              >
-                Log in
-              </motion.button>
-            </Link>
-            <Link href="/register">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                className="rounded-2xl border border-white/10 bg-white/5 px-8 py-3 font-semibold transition hover:bg-white/10"
-              >
-                Register
-              </motion.button>
-            </Link>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <AuthScreen />;
   }
 
+  // Loading state
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white/70">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-white" />
-          <div>Loading settings...</div>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-neutral-950">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Ambient background */}
-      <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900 via-black to-black" />
-
+    <div className="min-h-screen bg-neutral-950 text-white px-4 py-4 sm:p-6">
       <Snackbar data={snackData} />
-
-      <div className="mx-auto w-full max-w-3xl px-6 py-16">
+      
+      <div className="mx-auto max-w-2xl">
         {/* Header */}
-        <motion.header
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
-        >
-          <h1 className="mb-3 bg-gradient-to-br from-white to-white/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent">
-            Settings
-          </h1>
-          <p className="text-lg text-white/50">
-            Manage your account and integrations
-          </p>
-        </motion.header>
+        <header className="mb-6">
+          <h1 className="text-xl sm:text-2xl font-semibold text-white">Settings</h1>
+          <p className="text-xs sm:text-sm text-white/40">Manage your account and integrations</p>
+        </header>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          {/* Telegram Section */}
-          <div className="rounded-[32px] border border-white/10 bg-white/[0.02] p-8 backdrop-blur-xl">
-            <div className="mb-6 flex items-center justify-between">
+        <div className="space-y-4">
+          {/* Telegram Integration Card */}
+          <div className="rounded-xl sm:rounded-2xl border border-white/5 bg-white/[0.02] p-4 sm:p-6">
+            {/* Card Header */}
+            <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
-                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.98 1.26-5.6 3.7-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 3.99-1.74 6.65-2.89 7.98-3.45 3.8-1.59 4.59-1.87 5.1-1.87.11 0 .36.03.52.16.14.11.17.26.19.37.01.08.03.29.01.45z"/>
-                  </svg>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
+                  <TelegramIcon className="h-5 w-5 text-white/60" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">Telegram Integration</h2>
-                  <p className="text-sm text-white/50">Connect to receive signals</p>
+                  <h2 className="text-sm sm:text-base font-medium text-white">Telegram</h2>
+                  <p className="text-xs text-white/40">Receive trading signals</p>
                 </div>
               </div>
 
-              {/* Status badge */}
-              <div className="flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-400' : hasNicknameSaved ? 'bg-yellow-400' : 'bg-white/30'}`} />
-                <span className="text-sm text-white/60">
-                  {isConnected ? 'Connected' : hasNicknameSaved ? 'Pending' : 'Not connected'}
-                </span>
+              {/* Status */}
+              <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                isConnected 
+                  ? "bg-emerald-500/10 text-emerald-400" 
+                  : "bg-white/5 text-white/40"
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${isConnected ? "bg-emerald-400" : "bg-white/30"}`} />
+                {isConnected ? "Connected" : "Not connected"}
               </div>
             </div>
 
-            {/* Connected state */}
+            {/* Connected Banner */}
             {isConnected && (
-              <div className="mb-6 rounded-2xl bg-green-500/10 p-4 ring-1 ring-green-500/20">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/20">
-                    <svg className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-medium text-green-400">Successfully connected</p>
-                    <p className="text-sm text-white/60">@{tgNickname} • Receiving signals</p>
-                  </div>
+              <div className="mb-5 flex items-center gap-3 rounded-xl bg-emerald-500/10 p-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
+                  <CheckIcon className="h-4 w-4 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-emerald-400">Connected as @{tgNickname}</p>
+                  <p className="text-xs text-white/50">You'll receive signals via Telegram</p>
                 </div>
               </div>
             )}
 
-            {/* Steps */}
-            <div className="space-y-6">
-              {/* Step 1 */}
+            {/* Setup Steps */}
+            <div className="space-y-4">
+              {/* Step 1: Username */}
               <div>
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-black">
-                    1
-                  </div>
-                  <span className="text-sm font-medium text-white/80">
-                    Enter your Telegram username
-                  </span>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">1</span>
+                  <span className="text-xs sm:text-sm text-white/60">Enter your Telegram username</span>
                 </div>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">@</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">@</span>
                     <input
                       type="text"
                       value={tgInput}
                       onChange={(e) => setTgInput(e.target.value.replace(/^@/, ""))}
-                      placeholder="your_username"
-                      className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-8 pr-3 text-sm text-white placeholder-white/30 outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10"
+                      placeholder="username"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-7 pr-3 text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20"
                     />
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     onClick={handleSaveNickname}
                     disabled={saving || !nicknameChanged}
-                    className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-xl bg-white px-4 sm:px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {saving ? "Saving..." : "Save"}
-                  </motion.button>
+                    {saving ? "..." : "Save"}
+                  </button>
                 </div>
               </div>
 
-              {/* Step 2 */}
+              {/* Step 2: Bot Link */}
               <div>
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-black">
-                    2
-                  </div>
-                  <span className="text-sm font-medium text-white/80">
-                    Open our bot on Telegram
-                  </span>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">2</span>
+                  <span className="text-xs sm:text-sm text-white/60">Open our Telegram bot</span>
                 </div>
-                <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                  <code className="font-mono text-sm text-white/80">@cryphos_bot</code>
-                  <CopyChip value="cryphos_bot" label="Copy" />
+                <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                  <code className="text-sm text-white/70">@cryphos_bot</code>
+                  <CopyButton value="cryphos_bot" />
                 </div>
               </div>
 
-              {/* Step 3 */}
+              {/* Step 3: Start */}
               <div>
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-black">
-                    3
-                  </div>
-                  <span className="text-sm font-medium text-white/80">
-                    Send <code className="rounded bg-white/10 px-2 py-0.5 text-xs text-white">/start</code> to connect
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/60">3</span>
+                  <span className="text-xs sm:text-sm text-white/60">
+                    Send <code className="rounded bg-white/10 px-1.5 py-0.5 text-xs">/start</code> to connect
                   </span>
                 </div>
               </div>
 
               {/* Open Bot Button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 onClick={() => window.open("https://t.me/cryphos_bot", "_blank")}
-                className="w-full rounded-2xl bg-white px-6 py-4 font-semibold text-black transition hover:bg-white/90"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10"
               >
-                Open Telegram Bot →
-              </motion.button>
+                Open Telegram Bot
+                <ExternalLinkIcon className="h-4 w-4" />
+              </button>
             </div>
           </div>
-        </motion.div>
+
+          {/* Account Card (placeholder for future settings) */}
+          <div className="rounded-xl sm:rounded-2xl border border-white/5 bg-white/[0.02] p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
+                <UserIcon className="h-5 w-5 text-white/60" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-medium text-white">Account</h2>
+                <p className="text-xs text-white/40">More settings coming soon</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
