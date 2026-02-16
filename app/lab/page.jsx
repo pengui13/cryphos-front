@@ -23,7 +23,6 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 );
 
-// Result Modal Component
 function ResultModal({ isOpen, onClose, success, message }) {
   const router = useRouter();
 

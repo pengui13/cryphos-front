@@ -6,6 +6,8 @@ import RsiSettings from "./RsiSettings";
 import BollingerBandsSettings from "./BollingerBandsSettings";
 import SupportResistanceSettings from "./SupportResistanceSettings";
 import EmaSettings from "./EmaSettings";
+import MaSettings from "./MaSettings";
+
 
 export default function ConfigureBot({
   step,
@@ -32,6 +34,8 @@ export default function ConfigureBot({
   const [emaEnabled, setEmaEnabled] = useState(!!botSettings?.ema);
   const [emaSettings, setEmaSettings] = useState(botSettings?.ema ?? {});
 
+  const [maEnabled, setMaEnabled] = useState(!!botSettings?.ma);
+  const [maSettings, setMaSettings] = useState(botSettings?.ma ?? {});
   // Update parent settings whenever anything changes
   useEffect(() => {
     const updatedSettings = { ...botSettings };
@@ -48,6 +52,8 @@ export default function ConfigureBot({
     if (emaEnabled) updatedSettings.ema = emaSettings;
     else delete updatedSettings.ema;
 
+    if (maEnabled) updatedSettings.ma = maSettings;
+    else delete updatedSettings.ma;
     setBotSettings(updatedSettings);
   }, [
     rsiEnabled,
@@ -58,11 +64,13 @@ export default function ConfigureBot({
     srSettings,
     emaEnabled,
     emaSettings,
+    maEnabled,
+    maSettings,
     setBotSettings,
   ]);
 
   const handleCreateBot = async () => {
-    if (!rsiEnabled && !bbEnabled && !srEnabled && !emaEnabled) {
+    if (!rsiEnabled && !bbEnabled && !srEnabled && !emaEnabled && !maEnabled) {
       alert("Please enable at least one indicator");
       return;
     }
@@ -77,7 +85,7 @@ export default function ConfigureBot({
     }
   };
 
-  const enabledCount = [rsiEnabled, bbEnabled, srEnabled, emaEnabled].filter(
+  const enabledCount = [rsiEnabled, bbEnabled, srEnabled, emaEnabled, maEnabled].filter(
     Boolean
   ).length;
 
@@ -104,7 +112,6 @@ export default function ConfigureBot({
         </div>
       </div>
 
-      {/* Indicators */}
       <div className="space-y-6">
         {/* RSI */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
@@ -117,6 +124,14 @@ export default function ConfigureBot({
         </div>
 
         {/* EMA */}
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <MaSettings
+            enabled={maEnabled}
+            setEnabled={setMaEnabled}
+            settings={maSettings}
+            setSettings={setMaSettings}
+          />
+        </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <EmaSettings
             enabled={emaEnabled}
@@ -185,7 +200,7 @@ export default function ConfigureBot({
               Creating Bot...
             </span>
           ) : (
-            `Create Bot →`
+            `Create Bot`
           )}
         </motion.button>
       </div>
