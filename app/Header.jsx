@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, FlaskConical, Bot, Settings as SettingsIcon, LogOut, BarChart3 } from "lucide-react";
+import { Menu, X, FlaskConical, Bot, Settings as SettingsIcon, LogOut, BarChart3, GraduationCap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLang } from "./LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -31,6 +31,27 @@ function NavItem({ href, label, icon: Icon, active, onClick }) {
   );
 }
 
+function AcademyButton({ href, label, active, onClick }) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`group relative flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-sm font-medium transition-all ${
+        active
+          ? "border-purple-500/40 bg-purple-500/15 text-purple-300"
+          : "border-purple-500/20 bg-purple-500/[0.07] text-purple-400/80 hover:border-purple-500/35 hover:bg-purple-500/12 hover:text-purple-300"
+      }`}
+    >
+      <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+      {label}
+      {/* subtle glow on active */}
+      {active && (
+        <span className="absolute inset-0 rounded-xl ring-1 ring-inset ring-purple-500/20" />
+      )}
+    </Link>
+  );
+}
+
 export default function Header({ ping }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,10 +59,10 @@ export default function Header({ ping }) {
   const { t } = useLang();
 
   const nav = [
-    { href: "/lab", label: t("nav.lab"), icon: FlaskConical },
-    { href: "/bots", label: t("nav.bots"), icon: Bot },
-    { href: "/analytics", label: t("nav.analytics"), icon: BarChart3 },
-    { href: "/settings", label: t("nav.settings"), icon: SettingsIcon },
+    { href: "/lab",       label: t("nav.lab"),       icon: FlaskConical },
+    { href: "/bots",      label: t("nav.bots"),      icon: Bot          },
+    { href: "/analytics", label: t("nav.analytics"), icon: BarChart3    },
+    { href: "/settings",  label: t("nav.settings"),  icon: SettingsIcon },
   ];
 
   const handleLogout = () => {
@@ -53,6 +74,7 @@ export default function Header({ ping }) {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group shrink-0">
           <Image
@@ -71,6 +93,16 @@ export default function Header({ ping }) {
           {nav.map((n) => (
             <NavItem key={n.href} href={n.href} label={n.label} icon={n.icon} active={pathname === n.href} />
           ))}
+
+          {/* Divider */}
+          <div className="mx-2 h-4 w-px bg-white/10" />
+
+          {/* Academy — distinct style */}
+          <AcademyButton
+            href="/academy"
+            label={t("nav.academy")}
+            active={pathname.startsWith("/academy")}
+          />
         </nav>
 
         {/* Desktop right side */}
@@ -111,7 +143,7 @@ export default function Header({ ping }) {
                 onClick={handleLogout}
                 className="rounded-xl bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 ring-1 ring-red-500/20 transition hover:bg-red-500/20"
               >
-                {t("auth.logoutYes").replace("Так, вийти", "Так").replace("Да, выйти", "Да").replace("Ja, abmelden", "Ja").replace("Sí, salir", "Sí").replace("Yes, log out", "Yes")}
+                {t("auth.logoutYes")}
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -158,6 +190,23 @@ export default function Header({ ping }) {
                   onClick={() => setMobileOpen(false)}
                 />
               ))}
+
+              {/* Academy in mobile — full-width pill */}
+              <Link
+                href="/academy"
+                onClick={() => setMobileOpen(false)}
+                className={`flex w-full items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-all ${
+                  pathname.startsWith("/academy")
+                    ? "border-purple-500/40 bg-purple-500/15 text-purple-300"
+                    : "border-purple-500/20 bg-purple-500/[0.07] text-purple-400/80"
+                }`}
+              >
+                <GraduationCap className="h-4 w-4 shrink-0" />
+                {t("nav.academy")}
+                <span className="ml-auto rounded-full border border-purple-500/20 bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-400">
+                  NEW
+                </span>
+              </Link>
 
               <div className="my-3 h-px bg-white/10" />
 
