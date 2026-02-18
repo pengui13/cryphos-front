@@ -1,4 +1,5 @@
 "use client";
+import { LanguageProvider } from "./LanguageContext";
 import '../polyfills.js'
 import React, { useState, useEffect, useRef } from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
@@ -112,11 +113,14 @@ export default function RootLayout({ children }) {
             }}
             aria-busy={isShowingOverlay}
           >
-            <PingProvider value={ping}>
+            <LanguageProvider>
+      <PingProvider value={ping}>
               <Header ping={ping} />
               {children}
               <Footer />
             </PingProvider>
+            </LanguageProvider>
+      
           </div>
         </LoadingProvider>
       </body>

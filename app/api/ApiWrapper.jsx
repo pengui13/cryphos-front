@@ -182,6 +182,12 @@ const indicators = [
     "atr",
     "ema",
     "sr",  
+    "fib",  
+    "volume",  
+    "smc",  
+
+
+
 ];
 
   indicators.forEach((indicator) => {
