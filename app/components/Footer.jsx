@@ -2,92 +2,83 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useLang } from "../LanguageContext";
 
 export default function Footer() {
+  const { t } = useLang();
+
   return (
-    <footer className="border-t border-white/10 bg-black/50 backdrop-blur-xl">
+    <footer className="border-t border-white/[0.06] bg-[#080808]">
       <div className="mx-auto max-w-7xl px-6 py-12">
-        {/* Top Section */}
-        <div className="flex flex-col items-center justify-between gap-8 sm:flex-row sm:items-start">
-          {/* Logo + Description */}
-          <div className="flex flex-col items-center gap-4 text-center sm:items-start sm:text-left">
-            <div className="flex items-center gap-3">
+
+        <div className="flex flex-col items-center justify-between gap-10 sm:flex-row sm:items-start">
+
+          {/* Logo + tagline */}
+          <div className="flex flex-col items-center gap-3 text-center sm:items-start sm:text-left">
+            <div className="flex items-center gap-2.5">
               <Image
                 src="/logo.png"
                 alt="Cryphos"
-                width={40}
-                height={40}
-                className="rounded-lg opacity-90"
+                width={28}
+                height={28}
+                className="rounded-md opacity-80"
               />
-              <Link href="/" className="text-xl font-bold tracking-tight text-white transition hover:text-white/80">
+              <Link href="/" className="text-base font-semibold tracking-tight text-white/80 transition hover:text-white">
                 Cryphos
               </Link>
             </div>
-            <p className="max-w-sm text-sm leading-relaxed text-white/50">
-              Automated crypto analytics & trading strategy builder.
-              Backtests, alerts, automation — all in one platform.
+            <p className="max-w-[260px] text-xs leading-relaxed text-white/30">
+              {t?.("footer.tagline") ?? "Automated crypto analytics & trading strategy builder. Backtests, alerts, automation — all in one platform."}
             </p>
           </div>
 
-          {/* Links Grid */}
-          <div className="grid grid-cols-2 gap-12 text-sm">
-            {/* Navigation */}
+          {/* Links */}
+          <div className="grid grid-cols-2 gap-10 text-xs">
+
             <div className="space-y-3">
-              <h4 className="font-semibold text-white">Navigation</h4>
-              <ul className="space-y-2 text-white/50">
-                <li>
-                  <Link href="/" className="transition hover:text-white">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/bots" className="transition hover:text-white">
-                    Bots
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/lab" className="transition hover:text-white">
-                    Bot Factory
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/pricing" className="transition hover:text-white">
-                    Pricing
-                  </Link>
-                </li>
+              <h4 className="font-medium uppercase tracking-widest text-white/25">
+                {t?.("footer.navTitle") ?? "Navigation"}
+              </h4>
+              <ul className="space-y-2.5 text-white/40">
+                {[
+                  { href: "/",       label: t?.("footer.home")       ?? "Home"        },
+                  { href: "/bots",   label: t?.("footer.bots")       ?? "Bots"        },
+                  { href: "/lab",    label: t?.("footer.lab")        ?? "Bot Factory" },
+                  { href: "/pricing",label: t?.("footer.pricing")    ?? "Pricing"     },
+                ].map(({ href, label }) => (
+                  <li key={href}>
+                    <Link href={href} className="transition hover:text-white/80">{label}</Link>
+                  </li>
+                ))}
               </ul>
             </div>
 
-            {/* Legal */}
             <div className="space-y-3">
-              <h4 className="font-semibold text-white">Legal</h4>
-              <ul className="space-y-2 text-white/50">
-                <li>
-                  <Link href="/impressum" className="transition hover:text-white">
-                    Legal Notice
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="transition hover:text-white">
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="transition hover:text-white">
-                    Terms
-                  </Link>
-                </li>
+              <h4 className="font-medium uppercase tracking-widest text-white/25">
+                {t?.("footer.legalTitle") ?? "Legal"}
+              </h4>
+              <ul className="space-y-2.5 text-white/40">
+                {[
+                  { href: "/impressum", label: t?.("footer.legalNotice") ?? "Legal Notice" },
+                  { href: "/privacy",   label: t?.("footer.privacy")     ?? "Privacy"      },
+                  { href: "/terms",     label: t?.("footer.terms")       ?? "Terms"        },
+                ].map(({ href, label }) => (
+                  <li key={href}>
+                    <Link href={href} className="transition hover:text-white/80">{label}</Link>
+                  </li>
+                ))}
               </ul>
             </div>
+
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="mt-12 border-t border-white/10 pt-8 text-center">
-          <p className="text-xs text-white/40">
-            © {new Date().getFullYear()} Cryphos. All rights reserved.
+        <div className="mt-10 border-t border-white/[0.06] pt-6 text-center">
+          <p className="text-[11px] text-white/20">
+            © {new Date().getFullYear()} Cryphos. {t?.("footer.rights") ?? "All rights reserved."}
           </p>
         </div>
+
       </div>
     </footer>
   );

@@ -2,103 +2,80 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Send, MessageCircle, ArrowLeft, ShieldCheck } from "lucide-react";
 import SleekSnackbar from "../components/Snackbar";
-import {BASE_URL} from '../api/ApiWrapper'
+import { BASE_URL } from "../api/ApiWrapper";
+import { useLang } from "../LanguageContext";
 
-const slides = [
-  { src: "/hero-1.jpg", caption: "Reset and get back on track." },
-  { src: "/hero-2.png", caption: "Your security, simplified." },
-  { src: "/hero-3.png", caption: "Clarity when you need it most." },
-  { src: "/hero-4.png", caption: "Back in control, instantly." },
-];
-
-function Carousel({ interval = 4500 }) {
-  const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setIdx((i) => (i + 1) % slides.length), interval);
-    return () => clearInterval(id);
-  }, [interval]);
+// ── Orb — identical to Login / Register ──────────────────────────────────────
+function Orb({ x, y, size, color }) {
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-      <AnimatePresence initial={false} mode="popLayout">
-        <motion.div
-          key={idx}
-          initial={{ opacity: 0, scale: 1.02 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="absolute inset-0"
-        >
-          <Image src={slides[idx].src} alt="" fill priority className="object-cover" />
-          <div className="absolute inset-0 bg-[#b65fcf] mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115]/70 via-transparent to-transparent" />
-          <div className="absolute bottom-6 left-6 right-6">
-            <p className="text-xl md:text-2xl font-semibold tracking-tight">
-              {slides[idx].caption}
-            </p>
-            <div className="mt-3 flex gap-2">
-              {slides.map((_, i) => (
-                <span
-                  key={i}
-                  className={`h-1 w-8 rounded-full transition ${
-                    i === idx ? "bg-white/80" : "bg-white/25"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      <div className="pointer-events-none absolute left-4 top-4">
-        <Link
-          href="/"
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-4 py-2 text-sm backdrop-blur hover:bg-black/40"
-        >
-          <span>Back to website</span>
-          <span aria-hidden>→</span>
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function Strength({ value = "" }) {
-  const len = value.length;
-  const variety =
-    /[a-z]/.test(value) + /[A-Z]/.test(value) + /\d/.test(value) + /[^A-Za-z0-9]/.test(value);
-  const score = Math.min(1, (len > 7 ? 0.5 : len / 16) + (variety - 1) * 0.17);
-  return (
-    <div className="mt-1 h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+    <div className="pointer-events-none absolute" style={{ left: x, top: y, width: size, height: size }}>
       <div
-        className="h-full rounded-full transition-[width]"
+        className="absolute inset-0 rounded-full"
         style={{
-          width: `${Math.round(score * 100)}%`,
-          background: "rgba(227,184,255,.9)",
+          background: `radial-gradient(circle, rgba(${color},0.18) 0%, transparent 70%)`,
+          filter: "blur(80px)",
         }}
       />
     </div>
   );
 }
 
+// ── Password strength bar ─────────────────────────────────────────────────────
+function PasswordStrength({ value = "", t }) {
+  if (!value) return null;
+  const len = value.length;
+  const variety =
+    /[a-z]/.test(value) + /[A-Z]/.test(value) + /\d/.test(value) + /[^A-Za-z0-9]/.test(value);
+  const score = Math.min(1, (len > 7 ? 0.5 : len / 16) + (variety - 1) * 0.17);
+  const label = score < 0.3 ? (t?.("auth.pwWeak") ?? "Weak") : score < 0.6 ? (t?.("auth.pwMedium") ?? "Medium") : (t?.("auth.pwStrong") ?? "Strong");
+  const color = score < 0.3 ? "bg-red-500" : score < 0.6 ? "bg-yellow-400" : "bg-emerald-400";
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="h-0.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+        <motion.div
+          className={`h-full rounded-full ${color}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${Math.round(score * 100)}%` }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        />
+      </div>
+      <p className="text-[11px] text-white/30">{label}</p>
+    </div>
+  );
+}
+
+// ── Match indicator ───────────────────────────────────────────────────────────
+function MatchDot({ password, confirm }) {
+  if (!confirm) return null;
+  const ok = password === confirm;
+  return (
+    <span className={`text-[11px] ${ok ? "text-emerald-400" : "text-red-400"}`}>
+      {ok ? "✓ Passwords match" : "✗ Doesn't match"}
+    </span>
+  );
+}
+
 export default function Reset() {
   const router = useRouter();
-  const [step, setStep] = useState("start");
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { lang, setLang, t } = useLang();
+
+  const [step,         setStep]         = useState("start");   // "start" | "verify"
+  const [email,        setEmail]        = useState("");
+  const [code,         setCode]         = useState("");
+  const [password,     setPassword]     = useState("");
+  const [confirm,      setConfirm]      = useState("");
+  const [showPw,       setShowPw]       = useState(false);
+  const [showPw2,      setShowPw2]      = useState(false);
+  const [loading,      setLoading]      = useState(false);
   const [snackbarData, setSnackbarData] = useState(null);
-  const [showPw, setShowPw] = useState(false);
-  const [showPw2, setShowPw2] = useState(false);
 
   const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(v.trim());
 
-  const showError = (err, fallback = "Something went wrong") => {
+  const showError = (err, fallback = t?.("auth.resetFailed") ?? "Something went wrong") => {
     let msg = fallback;
     if (err?.detail) msg = String(err.detail);
     else if (typeof err === "string") msg = err;
@@ -114,7 +91,7 @@ export default function Reset() {
   const handleStart = async (e) => {
     e.preventDefault();
     if (!emailOk(email)) {
-      setSnackbarData({ visible: true, status: "error", info: "Enter a valid email" });
+      setSnackbarData({ visible: true, status: "error", info: t?.("auth.invalidEmail") ?? "Enter a valid email" });
       return;
     }
     setLoading(true);
@@ -125,15 +102,11 @@ export default function Reset() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json().catch(() => ({}));
-      
-      if (!res.ok) {
-        throw data || { detail: "Failed to send reset code" };
-      }
-      
+      if (!res.ok) throw data || { detail: "Failed to send reset code" };
       setStep("verify");
-      setSnackbarData({ visible: true, status: "success", info: "Reset code sent to your Telegram" });
+      setSnackbarData({ visible: true, status: "success", info: t?.("auth.resetCodeSent") ?? "Reset code sent to your Telegram" });
     } catch (err) {
-      showError(err, "Failed to send reset code");
+      showError(err, t?.("auth.resetSendFailed") ?? "Failed to send reset code");
     } finally {
       setLoading(false);
     }
@@ -141,207 +114,293 @@ export default function Reset() {
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    if (password !== confirm) {
-      setSnackbarData({ visible: true, status: "error", info: "Passwords do not match" });
+    if (!/^\d{6}$/.test(code.trim())) {
+      setSnackbarData({ visible: true, status: "error", info: t?.("auth.resetCodeInvalid") ?? "Code should be 6 digits" });
       return;
     }
-    if (!/^\d{6}$/.test(code.trim())) {
-      setSnackbarData({ visible: true, status: "error", info: "Code should be 6 digits" });
+    if (password !== confirm) {
+      setSnackbarData({ visible: true, status: "error", info: t?.("auth.pwNoMatch") ?? "Passwords do not match" });
       return;
     }
     if (password.length < 6) {
-      setSnackbarData({ visible: true, status: "error", info: "Password must be at least 6 characters" });
+      setSnackbarData({ visible: true, status: "error", info: t?.("auth.pwTooShort") ?? "Password must be at least 6 characters" });
       return;
     }
-    
     setLoading(true);
     try {
       const res = await fetch(`${BASE_URL}auth/reset/verify/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          email, 
-          code: code.trim(), 
-          password, 
-          password2: confirm 
-        }),
+        body: JSON.stringify({ email, code: code.trim(), password, password2: confirm }),
       });
       const data = await res.json().catch(() => ({}));
-      
-      if (!res.ok) {
-        throw data || { detail: "Reset failed" };
-      }
-      
-      setSnackbarData({ visible: true, status: "success", info: "Password reset! Redirecting to login…" });
+      if (!res.ok) throw data || { detail: "Reset failed" };
+      setSnackbarData({ visible: true, status: "success", info: t?.("auth.resetSuccess") ?? "Password reset! Redirecting…" });
       setTimeout(() => router.push("/login"), 1200);
     } catch (err) {
-      showError(err, "Invalid code or password");
+      showError(err, t?.("auth.resetVerifyFailed") ?? "Invalid code or password");
     } finally {
       setLoading(false);
     }
   };
 
+  const LANGS = [
+    { code: "en", flag: "🇬🇧" },
+    { code: "uk", flag: "🇺🇦" },
+    { code: "ru", flag: "🇷🇺" },
+    { code: "de", flag: "🇩🇪" },
+    { code: "es", flag: "🇪🇸" },
+  ];
+
+  const inputCls =
+    "w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20 focus:bg-white/[0.06]";
+
   return (
-    <div className="relative min-h-screen bg-[#0f1115] text-zinc-100">
-      <div className="mx-auto w-full max-w-6xl px-6 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-          {/* Left */}
-          <div className="flex flex-col gap-6">
-            <div className="h-[470px]">
-              <Carousel />
-            </div>
-          </div>
+    <div className="relative min-h-screen overflow-x-hidden bg-[#080808] text-white">
 
-          {/* Right */}
-          <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-            className="relative rounded-[28px] border border-white/10 bg-white/8 p-12 shadow-[0_10px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl"
+      {/* Background — identical to login/register */}
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(80,40,160,0.25),transparent)]" />
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <Orb x="5%"  y="8%"  size={500} color="100,60,200" />
+        <Orb x="75%" y="2%"  size={400} color="180,60,120" />
+        <Orb x="40%" y="55%" size={600} color="40,100,200" />
+      </div>
+
+      {/* Language picker */}
+      <div className="fixed right-6 top-6 z-50 flex items-center gap-1">
+        {LANGS.map(({ code, flag }) => (
+          <button
+            key={code}
+            onClick={() => setLang(code)}
+            className={`rounded-lg px-2 py-1 text-base transition-all ${
+              lang === code ? "bg-white/10 ring-1 ring-white/20" : "opacity-40 hover:opacity-80"
+            }`}
           >
-            <header className="mb-8">
-              <h1 className="text-[36px] font-extrabold tracking-tight">
-                {step === "start" ? "Reset your password" : "Set new password"}
-              </h1>
-              <p className="mt-1 text-white/70">
-                {step === "start"
-                  ? "Enter your email — we'll send a code to your Telegram."
-                  : "Check your Telegram for the 6-digit code."}
-              </p>
-            </header>
+            {flag}
+          </button>
+        ))}
+      </div>
 
-            {step === "start" ? (
-              <form className="grid gap-7" onSubmit={handleStart}>
-                <div>
-                  <label className="mb-1 block text-sm text-white/70">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-white placeholder-white/40 outline-none transition focus:border-[#e3b8ff]/40 focus:ring-2 focus:ring-[#e3b8ff]/30"
-                  />
-                </div>
+      <div className="flex min-h-screen items-center justify-center px-4 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-sm"
+        >
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8 backdrop-blur-sm">
 
-                {/* Info box */}
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-start gap-3">
-                    <span className="text-xl">📱</span>
+            <AnimatePresence mode="wait">
+
+              {/* ── STEP 1: Email ─────────────────────────────────────────── */}
+              {step === "start" && (
+                <motion.div
+                  key="start"
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 16 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <header className="mb-8">
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                      {t?.("auth.resetTitle") ?? "Reset password"}
+                    </h1>
+                    <p className="mt-1.5 text-sm text-white/40">
+                      {t?.("auth.resetSub") ?? "Enter your email — we'll send a code to your Telegram."}
+                    </p>
+                  </header>
+
+                  <form className="space-y-4" onSubmit={handleStart} noValidate>
+
                     <div>
-                      <p className="text-sm text-white/80">Reset code via Telegram</p>
-                      <p className="text-xs text-white/50 mt-1">
-                        Make sure you have Telegram connected to your account in Settings.
+                      <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-white/30">
+                        {t?.("auth.email") ?? "Email"}
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        className={inputCls}
+                      />
+                    </div>
+
+                    {/* Telegram note */}
+                    <div className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                      <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-white/30" />
+                      <p className="text-xs leading-relaxed text-white/40">
+                        {t?.("auth.resetTelegramNote") ?? "Make sure Telegram is connected to your account in Settings."}
                       </p>
                     </div>
-                  </div>
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="mt-2 inline-flex w-full items-center justify-center rounded-2xl bg-[#e3b8ff] px-6 py-3 font-semibold text-black shadow-[0_12px_30px_-10px_rgba(227,184,255,0.6)] hover:-translate-y-0.5 hover:bg-[#d7a8ff] transition disabled:opacity-60"
-                >
-                  {loading ? "Sending…" : "Send reset code"}
-                </button>
-                
-                <p className="text-sm text-white/60">
-                  Remembered?{" "}
-                  <Link href="/login" className="text-[#e3b8ff] hover:underline">
-                    Log in
-                  </Link>
-                </p>
-              </form>
-            ) : (
-              <form className="grid gap-6" onSubmit={handleVerify}>
-                {/* Telegram hint */}
-                <div className="rounded-xl border border-[#e3b8ff]/20 bg-[#e3b8ff]/5 p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">✨</span>
-                    <p className="text-sm text-[#e3b8ff]">
-                      Check your Telegram for a message from @cryphos_bot
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      type="submit"
+                      disabled={loading}
+                      className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                          {t?.("auth.resetSending") ?? "Sending…"}
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          {t?.("auth.resetSendCode") ?? "Send reset code"}
+                        </>
+                      )}
+                    </motion.button>
+
+                    <p className="pt-1 text-center text-xs text-white/25">
+                      {t?.("auth.resetRemembered") ?? "Remembered your password?"}{" "}
+                      <Link href="/login" className="text-white/40 underline underline-offset-2 transition hover:text-white/60">
+                        {t?.("auth.login") ?? "Sign in"}
+                      </Link>
                     </p>
-                  </div>
-                </div>
 
-                <div>
-                  <label className="mb-1 block text-sm text-white/70">Verification code</label>
-                  <input
-                    inputMode="numeric"
-                    pattern="\d{6}"
-                    maxLength={6}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
-                    placeholder="123456"
-                    className="w-full text-center tracking-[0.25em] text-xl rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-white placeholder-white/40 outline-none focus:border-[#e3b8ff]/40 focus:ring-2 focus:ring-[#e3b8ff]/30"
-                  />
-                </div>
+                  </form>
+                </motion.div>
+              )}
 
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label className="block text-sm text-white/70">New password</label>
-                    <button
-                      type="button"
-                      className="text-xs text-white/60 hover:text-white/80"
-                      onClick={() => setShowPw((v) => !v)}
-                    >
-                      {showPw ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-white outline-none focus:border-[#e3b8ff]/40 focus:ring-2 focus:ring-[#e3b8ff]/30"
-                  />
-                  <Strength value={password} />
-                </div>
-
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label className="block text-sm text-white/70">Confirm password</label>
-                    <button
-                      type="button"
-                      className="text-xs text-white/60 hover:text-white/80"
-                      onClick={() => setShowPw2((v) => !v)}
-                    >
-                      {showPw2 ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                  <input
-                    type={showPw2 ? "text" : "password"}
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-white outline-none focus:border-[#e3b8ff]/40 focus:ring-2 focus:ring-[#e3b8ff]/30"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-[#e3b8ff] px-6 py-3 font-semibold text-black shadow-[0_12px_30px_-10px_rgba(227,184,255,0.6)] hover:-translate-y-0.5 hover:bg-[#d7a8ff] transition disabled:opacity-60"
+              {/* ── STEP 2: Code + new password ───────────────────────────── */}
+              {step === "verify" && (
+                <motion.div
+                  key="verify"
+                  initial={{ opacity: 0, x: 16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  {loading ? "Resetting…" : "Reset password"}
-                </button>
+                  <header className="mb-8">
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                      {t?.("auth.resetNewTitle") ?? "Set new password"}
+                    </h1>
+                    <p className="mt-1.5 text-sm text-white/40">
+                      {t?.("auth.resetNewSub") ?? "Enter the code from your Telegram and choose a new password."}
+                    </p>
+                  </header>
 
-                <p className="text-sm text-white/60">
-                  Wrong email?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep("start");
-                      setCode("");
-                    }}
-                    className="text-[#e3b8ff] hover:underline"
-                  >
-                    Go back
-                  </button>
-                </p>
-              </form>
-            )}
-          </motion.section>
-        </div>
+                  <form className="space-y-4" onSubmit={handleVerify} noValidate>
+
+                    {/* Telegram hint */}
+                    <div className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-white/30" />
+                      <p className="text-xs leading-relaxed text-white/40">
+                        {t?.("auth.resetBotHint") ?? "Check Telegram for a message from @cryphos_bot"}
+                      </p>
+                    </div>
+
+                    {/* Code */}
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium uppercase tracking-widest text-white/30">
+                        {t?.("auth.resetCode") ?? "6-digit code"}
+                      </label>
+                      <input
+                        inputMode="numeric"
+                        pattern="\d{6}"
+                        maxLength={6}
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
+                        placeholder="123456"
+                        className={`${inputCls} text-center tracking-[0.3em]`}
+                      />
+                    </div>
+
+                    {/* New password */}
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label className="block text-xs font-medium uppercase tracking-widest text-white/30">
+                          {t?.("auth.resetNewPassword") ?? "New password"}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowPw((v) => !v)}
+                          className="text-xs text-white/30 transition hover:text-white/60"
+                        >
+                          {showPw ? (t?.("auth.hide") ?? "Hide") : (t?.("auth.show") ?? "Show")}
+                        </button>
+                      </div>
+                      <input
+                        type={showPw ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        className={inputCls}
+                      />
+                      <PasswordStrength value={password} t={t} />
+                    </div>
+
+                    {/* Confirm */}
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label className="block text-xs font-medium uppercase tracking-widest text-white/30">
+                          {t?.("auth.confirmPassword") ?? "Confirm password"}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowPw2((v) => !v)}
+                          className="text-xs text-white/30 transition hover:text-white/60"
+                        >
+                          {showPw2 ? (t?.("auth.hide") ?? "Hide") : (t?.("auth.show") ?? "Show")}
+                        </button>
+                      </div>
+                      <input
+                        type={showPw2 ? "text" : "password"}
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        className={inputCls}
+                      />
+                      <div className="mt-1.5">
+                        <MatchDot password={password} confirm={confirm} />
+                      </div>
+                    </div>
+
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      type="submit"
+                      disabled={loading}
+                      className="mt-2 w-full rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                          {t?.("auth.resetResetting") ?? "Resetting…"}
+                        </span>
+                      ) : (
+                        t?.("auth.resetConfirm") ?? "Reset password"
+                      )}
+                    </motion.button>
+
+                    <p className="pt-1 text-center text-xs text-white/25">
+                      {t?.("auth.resetWrongEmail") ?? "Wrong email?"}{" "}
+                      <button
+                        type="button"
+                        onClick={() => { setStep("start"); setCode(""); }}
+                        className="inline-flex items-center gap-1 text-white/40 underline underline-offset-2 transition hover:text-white/60"
+                      >
+                        <ArrowLeft className="h-3 w-3" />
+                        {t?.("auth.resetGoBack") ?? "Go back"}
+                      </button>
+                    </p>
+
+                  </form>
+                </motion.div>
+              )}
+
+            </AnimatePresence>
+          </div>
+
+          <p className="mt-6 text-center text-xs text-white/20">
+            © {new Date().getFullYear()} Cryphos
+          </p>
+        </motion.div>
       </div>
 
       <SleekSnackbar data={snackbarData} onClose={() => setSnackbarData(null)} />
