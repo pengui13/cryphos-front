@@ -144,14 +144,6 @@ export default function Reset() {
     }
   };
 
-  const LANGS = [
-    { code: "en", flag: "🇬🇧" },
-    { code: "uk", flag: "🇺🇦" },
-    { code: "ru", flag: "🇷🇺" },
-    { code: "de", flag: "🇩🇪" },
-    { code: "es", flag: "🇪🇸" },
-  ];
-
   const inputCls =
     "w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20 focus:bg-white/[0.06]";
 
@@ -166,21 +158,7 @@ export default function Reset() {
         <Orb x="40%" y="55%" size={600} color="40,100,200" />
       </div>
 
-      {/* Language picker */}
-      <div className="fixed right-6 top-6 z-50 flex items-center gap-1">
-        {LANGS.map(({ code, flag }) => (
-          <button
-            key={code}
-            onClick={() => setLang(code)}
-            className={`rounded-lg px-2 py-1 text-base transition-all ${
-              lang === code ? "bg-white/10 ring-1 ring-white/20" : "opacity-40 hover:opacity-80"
-            }`}
-          >
-            {flag}
-          </button>
-        ))}
-      </div>
-
+   
       <div className="flex min-h-screen items-center justify-center px-4 py-16">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
