@@ -405,7 +405,6 @@ export default function Analytics() {
   const totalLiqUSD = (liqStats.long_usd || 0) + (liqStats.short_usd || 0);
   const longRatio = totalLiqUSD > 0 ? ((liqStats.long_usd || 0) / totalLiqUSD) * 100 : 50;
 
-  // ✅ NO EARLY RETURN: keep hook order stable forever
   if (!authed) {
     return <AuthScreen />;
   }

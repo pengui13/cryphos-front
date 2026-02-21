@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import CryphosFearGreedGauge from "../components/Fng";
 
 const PRESETS = {
-  cautious:  { label: "Cautious",  lower: 20, upper: 80, lookback: 3, note: "Filters extremes, safer entries" },
-  balanced:  { label: "Balanced",  lower: 25, upper: 75, lookback: 2, note: "General purpose thresholds" },
-  aggressive:{ label: "Aggressive",lower: 15, upper: 85, lookback: 1, note: "More signals, less filtering" },
+  cautious:  { label: "Cautious",  lower: 20, upper: 80, period: 3, note: "Filters extremes, safer entries" },
+  balanced:  { label: "Balanced",  lower: 25, upper: 75, period: 2, note: "General purpose thresholds" },
+  aggressive:{ label: "Aggressive",lower: 15, upper: 85, period: 1, note: "More signals, less filtering" },
 };
 
 const FG_URL = "https://api.alternative.me/fng/?limit=1";
@@ -14,7 +14,7 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
   const [preset, setPreset] = useState(null);
   const [lower, setLower] = useState(settings?.lower ?? 20);
   const [upper, setUpper] = useState(settings?.upper ?? 80);
-  const [lookback, setLookback] = useState(settings?.lookback ?? 2);
+  const [period, setperiod] = useState(settings?.period ?? 2);
 
   const [fgValue, setFgValue] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -23,13 +23,13 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
   const matchedPreset = useMemo(() => {
     const isMatch = (k) => {
       const p = PRESETS[k];
-      return p.lower === lower && p.upper === upper && p.lookback === lookback;
+      return p.lower === lower && p.upper === upper && p.period === period;
     };
     if (isMatch("cautious")) return "cautious";
     if (isMatch("balanced")) return "balanced";
     if (isMatch("aggressive")) return "aggressive";
     return "custom";
-  }, [lower, upper, lookback]);
+  }, [lower, upper, period]);
 
   // Push up (no intervals)
   useEffect(() => {
@@ -37,9 +37,9 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
       type: "FG",
       lower,
       upper,
-      lookback, // maps to API ?limit=
+      period, // maps to API ?limit=
     });
-  }, [lower, upper, lookback, setSettings]);
+  }, [lower, upper, period, setSettings]);
 
   // Preview fetch (latest)
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
     setPreset(key);
     setLower(p.lower);
     setUpper(p.upper);
-    setLookback(p.lookback);
+    setperiod(p.period);
   }
 
   const zone =
@@ -77,7 +77,7 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white mb-1">Fear & Greed</h2>
-          <p className="text-white/60 text-sm">Daily index (0–100). Configure bounds and lookback (API limit).</p>
+          <p className="text-white/60 text-sm">Daily index (0–100). Configure bounds and period (API limit).</p>
         </div>
 
         <button
@@ -152,7 +152,7 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
                       {p.label}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded border border-white/10 text-white/60">
-                      {p.lower}–{p.upper} • L{p.lookback}
+                      {p.lower}–{p.upper} • L{p.period}
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-white/60">{p.note}</p>
@@ -164,7 +164,7 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
 
         <div>
           <div className="mb-3">
-            <h3 className="text-lg font-semibold text-white">Bounds & Lookback</h3>
+            <h3 className="text-lg font-semibold text-white">Bounds & period</h3>
             <p className="text-white/60 text-sm">Set thresholds and how many recent days to consider.</p>
           </div>
 
@@ -183,20 +183,20 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
               </div>
             ))}
             <div>
-              <label className="block text-xs text-white/60 mb-1">Lookback (days)</label>
+              <label className="block text-xs text-white/60 mb-1">period (days)</label>
               <input
                 type="number"
                 min={1}
                 max={30}
-                value={lookback}
-                onChange={(e) => setLookback(Math.max(1, Math.min(30, Number(e.target.value))))}
+                value={period}
+                onChange={(e) => setperiod(Math.max(1, Math.min(30, Number(e.target.value))))}
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[#e3b8ff]/60"
               />
             </div>
           </div>
 
           <p className="mt-2 text-xs text-white/50">
-            <code>?limit=</code> equals Lookback. You can use the latest only (L1) or average the last N values on the backend.
+            <code>?limit=</code> equals period. You can use the latest only (L1) or average the last N values on the backend.
           </p>
         </div>
 
@@ -215,8 +215,8 @@ export default function FGSettings({ enabled, setEnabled, settings, setSettings 
               <p className="text-white mt-1 font-medium">{lower} – {upper}</p>
             </div>
             <div>
-              <span className="text-white/60">Lookback:</span>
-              <p className="text-white mt-1 font-medium">L{lookback}</p>
+              <span className="text-white/60">period:</span>
+              <p className="text-white mt-1 font-medium">L{period}</p>
             </div>
           </div>
         </div>

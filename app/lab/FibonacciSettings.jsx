@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 const ALL_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "1d"];
 
-const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+const FIB_LEVELS = [0, 23.6, 38.2, 50.0, 61.8, 78.6, 100.0];
 
 export default function FibonacciSettings({
   enabled,
@@ -14,17 +14,17 @@ export default function FibonacciSettings({
     settings?.intervals?.length ? settings.intervals : ["1h"]
   );
   const [selectedLevels, setSelectedLevels] = useState(
-    settings?.levels?.length ? settings.levels : [0.382, 0.618]
+    settings?.levels?.length ? settings.levels : [38.2, 61.8]
   );
-  const [lookback, setLookback] = useState(settings?.lookback ?? 50);
+  const [period, setperiod] = useState(settings?.period ?? 50);
 
   useEffect(() => {
     setSettings({
       intervals: selectedTimeframes,
       levels: selectedLevels,
-      lookback,
+      period,
     });
-  }, [selectedTimeframes, selectedLevels, lookback, setSettings]);
+  }, [selectedTimeframes, selectedLevels, period, setSettings]);
 
   function toggleTimeframe(tf) {
     setSelectedTimeframes((cur) => {
@@ -108,8 +108,8 @@ export default function FibonacciSettings({
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-2">
             {FIB_LEVELS.map((level) => {
               const on = selectedLevels.includes(level);
-              const pct = (level * 100).toFixed(1);
-              const isKey = [0.382, 0.5, 0.618].includes(level);
+              const pct = level.toFixed(1);
+              const isKey = [38.2, 50.0, 61.8].includes(level);
               return (
                 <button
                   key={level}
@@ -127,9 +127,16 @@ export default function FibonacciSettings({
                       Key
                     </span>
                   )}
-                  <div className="h-px flex-1 mx-1" style={{ background: on ? `rgba(255,255,255,${0.1 + level * 0.3})` : "rgba(255,255,255,0.05)" }} />
+                  <div
+                    className="h-px flex-1 mx-1"
+                    style={{
+                      background: on
+                        ? `rgba(255,255,255,${0.1 + (level / 100) * 0.3})`
+                        : "rgba(255,255,255,0.05)",
+                    }}
+                  />
                   <span className={`text-xs shrink-0 ${on ? "text-white/50" : "text-white/20"}`}>
-                    {level.toFixed(3)}
+                    {level.toFixed(1)}
                   </span>
                 </button>
               );
@@ -137,18 +144,18 @@ export default function FibonacciSettings({
           </div>
         </div>
 
-        {/* Lookback period */}
+        {/* period period */}
         <div>
           <label className="mb-3 block text-sm font-medium text-white/70">
-            Swing Lookback (candles)
+            Swing period (candles)
           </label>
           <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
             {[20, 30, 50, 100, 200].map((p) => {
-              const on = lookback === p;
+              const on = period === p;
               return (
                 <button
                   key={p}
-                  onClick={() => setLookback(p)}
+                  onClick={() => setperiod(p)}
                   className={`rounded-lg py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                     on ? "bg-white text-black" : "bg-white/10 text-white/60 hover:bg-white/15"
                   }`}
