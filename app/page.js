@@ -131,23 +131,7 @@ export default function Home() {
             </Link>
           </motion.div>
 
-          {/* Stats bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.44 }}
-            className="mt-16 flex flex-wrap items-center justify-center gap-x-10 gap-y-6 sm:mt-24 sm:gap-x-16"
-          >
-            {[
-              { value: "9", label: t("home.stat3") },
-              { value: "<100ms", label: t("home.stat4") },
-            ].map((s, i) => (
-              <div key={i} className="text-center">
-                <div className="bg-gradient-to-br from-white to-white/50 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">{s.value}</div>
-                <div className="mt-1 text-xs text-white/40 sm:text-sm">{s.label}</div>
-              </div>
-            ))}
-          </motion.div>
+
         </motion.section>
 
         {/* ── FEATURES GRID ───────────────────────────────────────────── */}
