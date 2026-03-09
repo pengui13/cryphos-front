@@ -399,8 +399,8 @@ export default function Analytics() {
       .sort((a, b) => Math.abs(parseFloat(b.rate) || 0) - Math.abs(parseFloat(a.rate) || 0));
   }, [fundingRates]);
 
-  const fngValue = fng?.value || 0;
-  const fngClass = fng?.class || "Unknown";
+  const fngValue = fng?.fng || 0;
+  const fngClass = fng?.fng_class || "Unknown";
 
   const totalLiqUSD = (liqStats.long_usd || 0) + (liqStats.short_usd || 0);
   const longRatio = totalLiqUSD > 0 ? ((liqStats.long_usd || 0) / totalLiqUSD) * 100 : 50;
