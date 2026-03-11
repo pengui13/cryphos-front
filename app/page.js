@@ -4,12 +4,15 @@ import React, { useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useLang } from "./LanguageContext";
+import StrategiesCarousel from "./StrategiesCarousel";
+import TeamSection from "./TeamSection";
+import TradingGame from "./TradingGame";
+import HiringSection from "./HiringSection";
+
 import {
   Zap, Target, ShieldCheck, BarChart2, Clock, Layers,
   TrendingUp, Bell, Settings2, ArrowRight, CheckCircle2
 } from "lucide-react";
-
-// ─── Reusable primitives ────────────────────────────────────────────────────
 
 function Card({ children, delay = 0, className = "" }) {
   return (
@@ -47,9 +50,6 @@ function Orb({ x, y, size, color }) {
   );
 }
 
-// ─── Translation keys ────────────────────────────────────────────────────────
-// Add these to your i18n.js home section
-
 export default function Home() {
   const containerRef = useRef(null);
   const { t } = useLang();
@@ -70,28 +70,11 @@ export default function Home() {
 
       <div className="relative mx-auto max-w-6xl px-4 sm:px-8 lg:px-12">
 
-        {/* ── HERO ────────────────────────────────────────────────────── */}
+        {/* ── HERO ── */}
         <motion.section
           style={{ y: heroY, opacity: heroOpacity }}
-          className="flex min-h-screen flex-col items-center justify-center pb-16 pt-28 text-center sm:pt-36"
+          className="flex min-h-screen flex-col items-center justify-center pb-16 text-center sm:pt-36"
         >
-          {/* Live pill */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-            </span>
-            <span className="text-xs font-medium tracking-wide text-white/60 sm:text-sm">
-              {t("home.livePill")}
-            </span>
-          </motion.div>
-
-          {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -101,7 +84,6 @@ export default function Home() {
             {t("home.headline")}
           </motion.h1>
 
-          {/* Sub */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -111,7 +93,6 @@ export default function Home() {
             {t("home.sub")}
           </motion.p>
 
-          {/* CTA */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -121,20 +102,15 @@ export default function Home() {
             <Link href="/lab" className="w-full sm:w-auto">
               <button className="group flex w-full items-center justify-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-semibold text-black transition-all hover:bg-white/90 sm:px-10 sm:py-4 sm:text-base">
                 {t("home.ctaPrimary")}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
-            </Link>
-            <Link href="/bots" className="w-full sm:w-auto">
-              <button className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-8 py-3.5 text-sm font-semibold transition-all hover:border-white/20 hover:bg-white/[0.07] sm:px-10 sm:py-4 sm:text-base">
-                {t("home.ctaSecondary")}
               </button>
             </Link>
           </motion.div>
-
-
         </motion.section>
 
-        {/* ── FEATURES GRID ───────────────────────────────────────────── */}
+        {/* ── STRATEGIES CAROUSEL ── */}
+        <StrategiesCarousel />
+
+        {/* ── FEATURES GRID ── */}
         <section className="py-16 sm:py-28">
           <SectionHeading sub={t("home.featuresSub")}>
             {t("home.featuresTitle")}
@@ -142,12 +118,12 @@ export default function Home() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {[
-              { icon: Zap,        key: "feat1" },
-              { icon: Target,     key: "feat2" },
-              { icon: BarChart2,  key: "feat3" },
-              { icon: ShieldCheck,key: "feat4" },
-              { icon: Clock,      key: "feat5" },
-              { icon: Layers,     key: "feat6" },
+              { icon: Zap,         key: "feat1" },
+              { icon: Target,      key: "feat2" },
+              { icon: BarChart2,   key: "feat3" },
+              { icon: ShieldCheck, key: "feat4" },
+              { icon: Clock,       key: "feat5" },
+              { icon: Layers,      key: "feat6" },
             ].map(({ icon: Icon, key }, i) => (
               <Card key={i} delay={i * 0.07}>
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5">
@@ -160,41 +136,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── HOW IT WORKS ────────────────────────────────────────────── */}
-        <section className="py-16 sm:py-28">
-          <SectionHeading sub={t("home.stepsSub")}>
-            {t("home.stepsTitle")}
-          </SectionHeading>
+        {/* ── TRADING MINI GAME ── */}
+        <TradingGame />
 
-          <div className="grid gap-5 md:grid-cols-3">
-            {[
-              { icon: Settings2,   num: "01", key: "step1", points: ["step1p1", "step1p2", "step1p3"] },
-              { icon: TrendingUp,  num: "02", key: "step2", points: ["step2p1", "step2p2", "step2p3"] },
-              { icon: Bell,        num: "03", key: "step3", points: ["step3p1", "step3p2", "step3p3"] },
-            ].map(({ icon: Icon, num, key, points }, i) => (
-              <Card key={i} delay={i * 0.1} className="flex flex-col">
-                <div className="mb-6 flex items-center justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-                    <Icon className="h-5 w-5 text-white/60" />
-                  </div>
-                  <span className="text-4xl font-bold text-white/5">{num}</span>
-                </div>
-                <h3 className="mb-2 text-lg font-semibold">{t(`home.${key}Title`)}</h3>
-                <p className="mb-5 text-sm leading-relaxed text-white/50">{t(`home.${key}Desc`)}</p>
-                <ul className="mt-auto space-y-2.5">
-                  {points.map((p, idx) => (
-                    <li key={idx} className="flex items-center gap-2.5">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-white/30" />
-                      <span className="text-sm text-white/60">{t(`home.${p}`)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            ))}
-          </div>
-        </section>
 
-        {/* ── INDICATORS LIST ─────────────────────────────────────────── */}
+        <HiringSection />
+
+        {/* ── INDICATORS LIST ── */}
         <section className="py-16 sm:py-28">
           <SectionHeading sub={t("home.indicatorsSub")}>
             {t("home.indicatorsTitle")}
@@ -202,15 +150,15 @@ export default function Home() {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
             {[
-              { key: "ind1", label: "RSI" },
-              { key: "ind2", label: "MACD" },
-              { key: "ind3", label: "Bollinger Bands" },
-              { key: "ind4", label: "EMA / MA" },
-              { key: "ind5", label: "Fibonacci" },
-              { key: "ind6", label: "Smart Money" },
-              { key: "ind7", label: "Volume" },
-              { key: "ind8", label: "Support & Resistance" },
-              { key: "ind9", label: "Funding Rates" },
+              { key: "ind1",  label: "RSI" },
+              { key: "ind2",  label: "MACD" },
+              { key: "ind3",  label: "Bollinger Bands" },
+              { key: "ind4",  label: "EMA / MA" },
+              { key: "ind5",  label: "Fibonacci" },
+              { key: "ind6",  label: "Smart Money" },
+              { key: "ind7",  label: "Volume" },
+              { key: "ind8",  label: "Support & Resistance" },
+              { key: "ind9",  label: "Funding Rates" },
               { key: "ind10", label: "Fear & Greed" },
             ].map(({ key, label }, i) => (
               <motion.div
@@ -228,7 +176,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── FINAL CTA ───────────────────────────────────────────────── */}
+        {/* ── TEAM ── */}
+        <TeamSection />
+
+        {/* ── FINAL CTA ── */}
         <section className="py-16 sm:py-28">
           <Card>
             <div className="text-center">
