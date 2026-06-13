@@ -8,20 +8,25 @@ import SupportResistanceSettings from "./SupportResistanceSettings";
 import EmaSettings from "./EmaSettings";
 import MaSettings from "./MaSettings";
 import FibonacciSettings from "./FibonacciSettings";
-import SmartMoneySettings from "./SmartMoneySettings";
-import MacdSettings from "./MacdSettings";
-import VolumeSettings from "./VolumeSettings";
 import { useLang } from "../LanguageContext";
 
-function ComingSoon({ children }) {
+/**
+ * A clean, self-contained card for indicators that are ready on the FE
+ * but not yet wired on the BE. No live toggle, no blur — just a muted
+ * header with a "Soon" pill.
+ */
+function ComingSoonCard({ title, subtitle }) {
   return (
-    <div className="relative">
-      {/* Greyed-out, non-interactive indicator */}
-      <div className="pointer-events-none select-none opacity-40 blur-[0.5px]" aria-disabled="true">
-        {children}
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.015] p-6">
+      <div className="min-w-0">
+        <h3 className="truncate text-lg font-semibold text-white/45">{title}</h3>
+        <p className="mt-1 truncate text-sm text-white/30">{subtitle}</p>
       </div>
-      {/* Soon badge */}
-      <span className="absolute right-4 top-4 z-10 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-300">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-300/90">
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="9" />
+          <path strokeLinecap="round" d="M12 7v5l3 2" />
+        </svg>
         Soon
       </span>
     </div>
@@ -44,13 +49,6 @@ export default function ConfigureBot({ step, setStep, botSettings, setBotSetting
   const [maSettings, setMaSettings] = useState(botSettings?.ma ?? {});
   const [fibEnabled, setFibEnabled] = useState(!!botSettings?.fib);
   const [fibSettings, setFibSettings] = useState(botSettings?.fib ?? {});
-
-  // --- "Soon" indicators: ready on the FE but not yet wired on the BE.
-  // They are rendered greyed-out / disabled and never added to botSettings.
-  const [smcSettings, setSmcSettings] = useState(botSettings?.smc ?? {});
-  const [macdSettings, setMacdSettings] = useState(botSettings?.macd ?? {});
-  const [volSettings, setVolSettings] = useState(botSettings?.volume ?? {});
-  const noop = () => {};
 
   useEffect(() => {
     const s = { ...botSettings };
@@ -96,11 +94,7 @@ export default function ConfigureBot({ step, setStep, botSettings, setBotSetting
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <RsiSettings enabled={rsiEnabled} setEnabled={setRsiEnabled} settings={rsiSettings} setSettings={setRsiSettings} />
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-          <ComingSoon>
-            <MacdSettings enabled={false} setEnabled={noop} settings={macdSettings} setSettings={setMacdSettings} />
-          </ComingSoon>
-        </div>
+        <ComingSoonCard title={t("indicators.macd.name")} subtitle={t("indicators.macd.desc")} />
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <MaSettings enabled={maEnabled} setEnabled={setMaEnabled} settings={maSettings} setSettings={setMaSettings} />
         </div>
@@ -113,16 +107,8 @@ export default function ConfigureBot({ step, setStep, botSettings, setBotSetting
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <FibonacciSettings enabled={fibEnabled} setEnabled={setFibEnabled} settings={fibSettings} setSettings={setFibSettings} />
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-          <ComingSoon>
-            <VolumeSettings enabled={false} setEnabled={noop} settings={volSettings} setSettings={setVolSettings} />
-          </ComingSoon>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-          <ComingSoon>
-            <SmartMoneySettings enabled={false} setEnabled={noop} settings={smcSettings} setSettings={setSmcSettings} />
-          </ComingSoon>
-        </div>
+        <ComingSoonCard title={t("indicators.volume.name")} subtitle={t("indicators.volume.desc")} />
+        <ComingSoonCard title={t("indicators.smc.name")} subtitle={t("indicators.smc.desc")} />
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <SupportResistanceSettings enabled={srEnabled} setEnabled={setSrEnabled} settings={srSettings} setSettings={setSrSettings} />
         </div>

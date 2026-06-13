@@ -389,7 +389,7 @@ export async function UpdateAvatar(file) {
 export function GetFearAndGreed(onSuccess, onError) {
   return apiRequest({
     method: "GET",
-    endpoint: `${BASE_URL}bots/fng/`,
+    endpoint: `${BASE_URL}assets/fng/`,
     onSuccess: (json) => onSuccess?.(json),
     onError: (err) => onError?.(err),
   });
@@ -397,7 +397,7 @@ export function GetFearAndGreed(onSuccess, onError) {
 export function GetFundingRates(onSuccess, onError) {
   return apiRequest({
     method: "GET",
-    endpoint: `${BASE_URL}bots/funding/`,
+    endpoint: `${BASE_URL}assets/funding/`,
     onSuccess: (json) => onSuccess?.(json),
     onError: (err) => onError?.(err),
   });
@@ -533,7 +533,7 @@ export async function DeleteBots(id) {
 
 export async function GetSignals(botId, onSuccess, onError) {
   return apiRequest({
-    endpoint: `${BASE_URL}bots/get_signals/${botId}/`,
+    endpoint: `${BASE_URL}assets/get_signals/${botId}/`,
     method: "GET",
     onSuccess: (json) => {
       if (onSuccess) onSuccess(json);
