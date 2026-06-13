@@ -464,22 +464,8 @@ export function UpdateRiskSettings(data, onSuccess, onError) {
   });
 }
 
-export function GetBacktestData(botId, params, onSuccess) {
-  return apiRequest({
-    method: "POST",
-    endpoint: `${BASE_URL}bots/backtest/${botId}/`,
-    body: {
-      usdt_value: params.usdt_value,
-      take_profit: params.take_profit,
-      stop_loss: params.stop_loss,
-    },
-    onSuccess: (json) => onSuccess?.(json),
-    onError: (err) => {
-      console.error("GetBacktestData failed:", err);
-      onSuccess?.(null);
-    },
-  });
-}
+// Backtesting is not wired on the backend yet — the endpoint does not exist.
+// The wrapper is removed to avoid dead calls; restore it when the engine ships.
 
 export function GetBillingStatus(onSuccess, onError) {
   return apiRequest({

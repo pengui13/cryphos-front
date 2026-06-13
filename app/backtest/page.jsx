@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as LWC from "lightweight-charts";
-import { GetBacktestData } from "../api/ApiWrapper";
 
 /* ========================= THEME ========================= */
 const THEME = {
@@ -527,32 +526,35 @@ function ChartCard({ asset, theme = THEME, height = 560 }) {
   );
 }
 
-/* ========================= PAGE (multi-asset) ========================= */
+/* ========================= PAGE (multi-asset) =========================
+   Backtesting is not yet wired on the backend. Until the engine ships we
+   render a "Coming soon" placeholder instead of the (currently broken)
+   multi-asset chart view. The chart components above are kept intact so
+   this can be restored by swapping the default export back. */
 export default function BacktestMultiAssetPage() {
-  const [assets, setAssets] = useState([]);
-
-  useEffect(() => {
-    GetBacktestData((json) => {
-      const list = Array.isArray(json?.data) ? json.data : [];
-      setAssets(list.map(normalizeAssetPayload));
-    });
-  }, []);
-
-  if (!assets.length) {
-    return (
-      <div className="w-full flex justify-center py-16 text-white/60">
-        Loading…
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full flex flex-col items-center gap-12 py-8">
-      {/* Adaptive grid: one per row on mobile, two on xl+ if you have >1 symbol */}
-      <div className="w-full flex flex-col items-center gap-12">
-        {assets.map((a) => (
-          <ChartCard key={a.symbol || Math.random()} asset={a} />
-        ))}
+    <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 text-white">
+      <div className="w-full max-w-md rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5">
+          <svg className="h-7 w-7 text-amber-300/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <circle cx="12" cy="12" r="9" />
+            <path strokeLinecap="round" d="M12 7v5l3 2" />
+          </svg>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-300/90">
+          Soon
+        </span>
+        <h1 className="mt-4 text-xl font-semibold text-white">Backtesting is coming soon</h1>
+        <p className="mt-2 text-sm text-white/40">
+          We&apos;re building an engine to simulate your strategy against historical
+          market data. It will land here shortly.
+        </p>
+        <a
+          href="/bots"
+          className="mt-6 inline-flex items-center justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90"
+        >
+          Back to your bots
+        </a>
       </div>
     </div>
   );
