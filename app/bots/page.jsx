@@ -470,10 +470,11 @@ export default function Bots() {
                     <div>
                       <div className="text-[10px] text-white/30 uppercase">Status</div>
                       <div className="flex items-center gap-1.5">
-                        <span className={`h-1.5 w-1.5 rounded-full ${bot.is_active ? "bg-emerald-400" : "bg-white/30"}`} />
-                        <span className="text-xs text-white/60">
-                          {bot.is_active ? "Active" : "Inactive"}
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60" />
+                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
                         </span>
+                        <span className="text-xs text-white/60">Running</span>
                       </div>
                     </div>
                   </div>
