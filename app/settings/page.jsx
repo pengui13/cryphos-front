@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Snackbar from "../components/Snackbar";
 import { usePing } from "../providers";
-import { GetTelegramInfo, AddTelegram } from "../api/ApiWrapper";
+import {
+  GetTelegramInfo,
+  AddTelegram,
+  GetProfile,
+  UpdateUsername,
+  ChangePassword,
+  UpdateAvatar,
+} from "../api/ApiWrapper";
 import AuthScreen from "../components/AuthScreen.jsx";
 
 // ============ ICONS ============
@@ -80,6 +87,204 @@ function CopyButton({ value }) {
         </>
       )}
     </button>
+  );
+}
+
+// ============ ACCOUNT CARD ============
+function AccountCard({ setSnack }) {
+  const fileRef = useRef(null);
+
+  const [profile, setProfile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+
+  const [usernameInput, setUsernameInput] = useState("");
+  const [usernameSaving, setUsernameSaving] = useState(false);
+
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [newPw2, setNewPw2] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+
+  useEffect(() => {
+    GetProfile()
+      .then((data) => {
+        setProfile(data);
+        setUsernameInput(data?.username || "");
+      })
+      .catch((err) => console.error("Failed to load profile:", err));
+  }, []);
+
+  const usernameChanged =
+    usernameInput.trim() && usernameInput.trim() !== profile?.username;
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setSnack({ visible: true, status: false, type: "prime", info: "Use a JPEG, PNG or WEBP image" });
+      return;
+    }
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarSaving(true);
+    try {
+      const data = await UpdateAvatar(file);
+      setProfile(data);
+      setSnack({ visible: true, status: true, type: "prime", info: "Profile photo updated" });
+    } catch (err) {
+      setAvatarPreview(null);
+      setSnack({ visible: true, status: false, type: "prime", info: err?.data?.detail || "Failed to upload photo" });
+    } finally {
+      setAvatarSaving(false);
+    }
+  }
+
+  async function handleSaveUsername() {
+    setUsernameSaving(true);
+    try {
+      const data = await UpdateUsername(usernameInput.trim());
+      setProfile(data);
+      setUsernameInput(data.username);
+      setSnack({ visible: true, status: true, type: "prime", info: "Username updated" });
+    } catch (err) {
+      setSnack({ visible: true, status: false, type: "prime", info: err?.data?.detail || "Failed to update username" });
+    } finally {
+      setUsernameSaving(false);
+    }
+  }
+
+  async function handleChangePassword() {
+    if (newPw !== newPw2) {
+      setSnack({ visible: true, status: false, type: "prime", info: "New passwords do not match" });
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await ChangePassword(currentPw, newPw, newPw2);
+      setCurrentPw("");
+      setNewPw("");
+      setNewPw2("");
+      setSnack({ visible: true, status: true, type: "prime", info: "Password updated" });
+    } catch (err) {
+      setSnack({ visible: true, status: false, type: "prime", info: err?.data?.detail || "Failed to update password" });
+    } finally {
+      setPwSaving(false);
+    }
+  }
+
+  const avatarSrc = avatarPreview || profile?.avatar || null;
+  const initial = (profile?.username || "?").charAt(0).toUpperCase();
+  const canChangePw = currentPw && newPw && newPw2;
+
+  return (
+    <div className="rounded-xl sm:rounded-2xl border border-white/5 bg-white/[0.02] p-4 sm:p-6">
+      {/* Card Header */}
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
+          <UserIcon className="h-5 w-5 text-white/60" />
+        </div>
+        <div>
+          <h2 className="text-sm sm:text-base font-medium text-white">Account</h2>
+          <p className="text-xs text-white/40">Manage your profile and password</p>
+        </div>
+      </div>
+
+      {/* Avatar + username summary */}
+      <div className="mb-6 flex items-center gap-4">
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5"
+          title="Change photo"
+        >
+          {avatarSrc ? (
+            <img src={avatarSrc} alt="avatar" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-white/70">
+              {initial}
+            </span>
+          )}
+          <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[10px] font-medium text-white opacity-0 transition group-hover:opacity-100">
+            {avatarSaving ? "..." : "Change"}
+          </span>
+        </button>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-white">{profile?.username || "—"}</p>
+          <p className="truncate text-xs text-white/40">{profile?.email || ""}</p>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="mt-1 text-xs text-white/50 transition hover:text-white/80"
+          >
+            Upload new photo
+          </button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png, image/jpeg, image/webp"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
+      </div>
+
+      {/* Username */}
+      <div className="mb-6">
+        <label className="mb-2 block text-xs sm:text-sm text-white/60">Username</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={usernameInput}
+            onChange={(e) => setUsernameInput(e.target.value)}
+            placeholder="username"
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20"
+          />
+          <button
+            onClick={handleSaveUsername}
+            disabled={usernameSaving || !usernameChanged}
+            className="rounded-xl bg-white px-4 sm:px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {usernameSaving ? "..." : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {/* Password */}
+      <div>
+        <label className="mb-2 block text-xs sm:text-sm text-white/60">Change password</label>
+        <div className="space-y-2">
+          <input
+            type="password"
+            value={currentPw}
+            onChange={(e) => setCurrentPw(e.target.value)}
+            placeholder="Current password"
+            autoComplete="current-password"
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20"
+          />
+          <input
+            type="password"
+            value={newPw}
+            onChange={(e) => setNewPw(e.target.value)}
+            placeholder="New password"
+            autoComplete="new-password"
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20"
+          />
+          <input
+            type="password"
+            value={newPw2}
+            onChange={(e) => setNewPw2(e.target.value)}
+            placeholder="Confirm new password"
+            autoComplete="new-password"
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20"
+          />
+          <button
+            onClick={handleChangePassword}
+            disabled={pwSaving || !canChangePw}
+            className="w-full rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {pwSaving ? "Updating..." : "Update password"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -282,18 +487,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Account Card (placeholder for future settings) */}
-          <div className="rounded-xl sm:rounded-2xl border border-white/5 bg-white/[0.02] p-4 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
-                <UserIcon className="h-5 w-5 text-white/60" />
-              </div>
-              <div>
-                <h2 className="text-sm sm:text-base font-medium text-white">Account</h2>
-                <p className="text-xs text-white/40">More settings coming soon</p>
-              </div>
-            </div>
-          </div>
+          {/* Account Card */}
+          <AccountCard setSnack={setSnackData} />
         </div>
       </div>
     </div>

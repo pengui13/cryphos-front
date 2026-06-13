@@ -326,6 +326,65 @@ export async function GetTelegramInfo() {
   });
 }
 
+// --- Profile functions ---
+
+/** Get the current user's profile (username, email, avatar). */
+export async function GetProfile() {
+  return new Promise((resolve, reject) => {
+    apiRequest({
+      endpoint: `${BASE_URL}auth/profile/`,
+      method: "GET",
+      onSuccess: (data) => resolve(data),
+      onError: (err) => reject(err),
+    });
+  });
+}
+
+/** Update the current user's username. */
+export async function UpdateUsername(username) {
+  return new Promise((resolve, reject) => {
+    apiRequest({
+      endpoint: `${BASE_URL}auth/profile/`,
+      method: "PATCH",
+      body: { username },
+      onSuccess: (data) => resolve(data),
+      onError: (err) => reject(err),
+    });
+  });
+}
+
+/** Change the current user's password (requires current password). */
+export async function ChangePassword(currentPassword, newPassword, newPassword2) {
+  return new Promise((resolve, reject) => {
+    apiRequest({
+      endpoint: `${BASE_URL}auth/profile/password/`,
+      method: "POST",
+      body: {
+        current_password: currentPassword,
+        new_password: newPassword,
+        new_password2: newPassword2,
+      },
+      onSuccess: (data) => resolve(data),
+      onError: (err) => reject(err),
+    });
+  });
+}
+
+/** Upload / replace the user's profile photo. */
+export async function UpdateAvatar(file) {
+  const form = new FormData();
+  form.append("avatar", file);
+  return new Promise((resolve, reject) => {
+    apiRequest({
+      endpoint: `${BASE_URL}auth/profile/avatar/`,
+      method: "POST",
+      body: form,
+      onSuccess: (data) => resolve(data),
+      onError: (err) => reject(err),
+    });
+  });
+}
+
 
 export function GetFearAndGreed(onSuccess, onError) {
   return apiRequest({

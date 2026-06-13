@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { GetProfile } from "./api/ApiWrapper";
 import {
   Menu,
   X,
@@ -63,11 +64,37 @@ function AcademyButton({ href, label, active, onClick }) {
   );
 }
 
+function Avatar({ profile, size = "h-8 w-8" }) {
+  const initial = (profile?.username || "?").charAt(0).toUpperCase();
+  return (
+    <span className={`${size} shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/10`}>
+      {profile?.avatar ? (
+        <img src={profile.avatar} alt={profile?.username || "avatar"} className="h-full w-full object-cover" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white/70">
+          {initial}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export default function Header({ ping }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const [profile, setProfile] = useState(null);
   const { t } = useLang();
+
+  useEffect(() => {
+    if (!ping) {
+      setProfile(null);
+      return;
+    }
+    GetProfile()
+      .then(setProfile)
+      .catch(() => setProfile(null));
+  }, [ping]);
 
   const nav = [
     { href: "/lab", label: t("nav.lab"), icon: FlaskConical },
@@ -156,16 +183,28 @@ export default function Header({ ping }) {
                 </Link>
               </>
             ) : !logoutConfirm ? (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setLogoutConfirm(true)}
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 lg:px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 whitespace-nowrap"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden lg:inline">{t("auth.logout")}</span>
-                <span className="lg:hidden">Logout</span>
-              </motion.button>
+              <>
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-white/5"
+                  title={profile?.username || ""}
+                >
+                  <Avatar profile={profile} />
+                  <span className="hidden lg:inline max-w-[120px] truncate text-sm font-medium text-white/80">
+                    {profile?.username || ""}
+                  </span>
+                </Link>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setLogoutConfirm(true)}
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 lg:px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 whitespace-nowrap"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden lg:inline">{t("auth.logout")}</span>
+                  <span className="lg:hidden">Logout</span>
+                </motion.button>
+              </>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="hidden lg:inline text-sm text-white/50">{t("auth.logoutConfirm")}</span>
@@ -266,13 +305,25 @@ export default function Header({ ping }) {
                   </Link>
                 </div>
               ) : !logoutConfirm ? (
-                <button
-                  onClick={() => setLogoutConfirm(true)}
-                  className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80"
-                >
-                  <LogOut className="h-4 w-4" />
-                  {t("auth.logout")}
-                </button>
+                <div className="space-y-2">
+                  <Link
+                    href="/settings"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5"
+                  >
+                    <Avatar profile={profile} size="h-9 w-9" />
+                    <span className="truncate text-sm font-medium text-white">
+                      {profile?.username || "Account"}
+                    </span>
+                  </Link>
+                  <button
+                    onClick={() => setLogoutConfirm(true)}
+                    className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {t("auth.logout")}
+                  </button>
+                </div>
               ) : (
                 <div className="space-y-2">
                   <p className="px-2 text-sm text-white/50">{t("auth.logoutConfirmLong")}</p>
