@@ -12,10 +12,11 @@ const IntervalsMapping = {
 };
 const cookies = new Cookies();
 
-export const BASE_URL = "https://cryphos.com/api/";
-export const MEDIA_URL = "https://cryphos.com/";
-export const WEBSOCKET_URL = "https://cryphos.com/ws/";
-export const BASE_FRONT = "https://cryphos.com/";
+export const HOST = 'https://cryphos.com'
+export const BASE_URL = `${HOST}/api/`;
+export const MEDIA_URL = `${HOST}/`;
+export const WEBSOCKET_URL = `${HOST}/ws/`;
+export const BASE_FRONT = `${HOST}/`;
 
 
 function getCookieValue(name) {
@@ -156,8 +157,7 @@ export function signIn(creds) {
 export async function GetAllSymbolsNonStable(setSymbols) {
   apiRequest({
     endpoint: `${BASE_URL}assets/assets/`,
-    skipAuth: true,
-    onSuccess: (jsonData) => setSymbols(jsonData.assets),
+    onSuccess: (jsonData) => setSymbols(jsonData),
     onError: (error) => console.error("Fetching user profile failed", error),
   });
 }
@@ -221,8 +221,8 @@ export async function GetMyBots(setMyBots) {
 }
 export async function GetPing(setPing) {
   apiRequest({
-    endpoint: `${BASE_URL}bots/ping/`,
-    onSuccess: (jsonData) => setPing(jsonData.ping),
+    endpoint: `${BASE_URL}auth/ping/`,
+    onSuccess: (jsonData) => setPing(true),
     onError: (error) => setPing(false),
   });
 }
@@ -304,7 +304,7 @@ export async function RequestBotVerification(botId) {
 export async function AddTelegram(nickname) {
   return new Promise((resolve, reject) => {
     apiRequest({
-      endpoint: `${BASE_URL}bots/add_telegram/`,
+      endpoint: `${BASE_URL}auth/add_telegram/`,
       method: "POST",
       body: { nickname },
       onSuccess: (data) => resolve(data),
