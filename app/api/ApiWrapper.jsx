@@ -12,11 +12,14 @@ const IntervalsMapping = {
 };
 const cookies = new Cookies();
 
+
 export const HOST = 'https://cryphos.com'
-export const BASE_URL = `${HOST}/api/`;
-export const MEDIA_URL = `${HOST}/`;
-export const WEBSOCKET_URL = `${HOST}/ws/`;
 export const BASE_FRONT = `${HOST}/`;
+
+export const API_HOST = 'https://api.cryphos.com'
+export const BASE_URL = `${API_HOST}/api/`;
+export const MEDIA_URL = `${API_HOST}/`;
+export const WEBSOCKET_URL = `${API_HOST}/ws/`;
 
 
 function getCookieValue(name) {
