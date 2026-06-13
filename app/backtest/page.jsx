@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as LWC from "lightweight-charts";
+import { usePing } from "../providers";
+import AuthScreen from "../components/AuthScreen.jsx";
 
 /* ========================= THEME ========================= */
 const THEME = {
@@ -532,6 +534,12 @@ function ChartCard({ asset, theme = THEME, height = 560 }) {
    multi-asset chart view. The chart components above are kept intact so
    this can be restored by swapping the default export back. */
 export default function BacktestMultiAssetPage() {
+  const ping = usePing();
+
+  if (!ping) {
+    return <AuthScreen />;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 text-white">
       <div className="w-full max-w-md rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">

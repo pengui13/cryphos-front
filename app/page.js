@@ -8,6 +8,7 @@ import StrategiesCarousel from "./StrategiesCarousel";
 import TeamSection from "./TeamSection";
 import TradingGame from "./TradingGame";
 import HiringSection from "./HiringSection";
+import DonationSection from "./DonationSection";
 
 import {
   Zap, Target, ShieldCheck, BarChart2, Clock, Layers,
@@ -178,6 +179,9 @@ export default function Home() {
 
         {/* ── TEAM ── */}
         <TeamSection />
+
+        {/* ── DONATIONS ── */}
+        <DonationSection />
 
         {/* ── FINAL CTA ── */}
         <section className="py-16 sm:py-28">

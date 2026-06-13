@@ -353,6 +353,19 @@ export async function UpdateUsername(username) {
   });
 }
 
+/** Update the user's TRC20 USDT wallet address (empty string clears it). */
+export async function UpdateWallet(wallet) {
+  return new Promise((resolve, reject) => {
+    apiRequest({
+      endpoint: `${BASE_URL}auth/profile/`,
+      method: "PATCH",
+      body: { usdt_trc20_wallet: wallet },
+      onSuccess: (data) => resolve(data),
+      onError: (err) => reject(err),
+    });
+  });
+}
+
 /** Change the current user's password (requires current password). */
 export async function ChangePassword(currentPassword, newPassword, newPassword2) {
   return new Promise((resolve, reject) => {

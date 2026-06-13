@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { GetBots, DeleteBots, GetSignals } from "../api/ApiWrapper";
+import { GetBots, DeleteBots, GetSignals, GetFearAndGreed } from "../api/ApiWrapper";
 import { usePing } from "../providers";
 import RiskSettings from "./RiskSettings";
 import AuthScreen from "../components/AuthScreen.jsx";
@@ -73,6 +73,71 @@ function BotIcon({ className }) {
   );
 }
 
+// ============ SIGNAL STATS HELPERS ============
+function signalPnlPct(s) {
+  if (s?.close_price == null || s?.open_price == null) return null;
+  const open = parseFloat(s.open_price);
+  const close = parseFloat(s.close_price);
+  if (!open) return null;
+  return s.is_long
+    ? ((close - open) / open) * 100
+    : ((open - close) / open) * 100;
+}
+
+function computeStats(signals) {
+  const list = Array.isArray(signals) ? signals : [];
+  let open = 0;
+  let closed = 0;
+  let wins = 0;
+  let realized = 0;
+  for (const s of list) {
+    if (s.is_open) {
+      open += 1;
+      continue;
+    }
+    closed += 1;
+    const pnl = signalPnlPct(s);
+    if (pnl == null) continue;
+    realized += pnl;
+    if (pnl > 0) wins += 1;
+  }
+  return {
+    total: list.length,
+    open,
+    closed,
+    wins,
+    winRate: closed > 0 ? Math.round((wins / closed) * 100) : null,
+    realized,
+  };
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return "—";
+  const then = new Date(dateStr).getTime();
+  if (Number.isNaN(then)) return "—";
+  const secs = Math.floor((Date.now() - then) / 1000);
+  if (secs < 45) return "just now";
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// Fear & Greed color by numeric value (0-100)
+function fngColor(value) {
+  if (value == null || Number.isNaN(value)) return "text-white/60";
+  if (value < 25) return "text-red-400";
+  if (value < 45) return "text-orange-400";
+  if (value < 55) return "text-yellow-400";
+  if (value < 75) return "text-lime-400";
+  return "text-emerald-400";
+}
+
 // ============ MAIN COMPONENT ============
 export default function Bots() {
   const router = useRouter();
@@ -86,9 +151,25 @@ export default function Bots() {
   const [signals, setSignals] = useState({});
   const [loadingSignals, setLoadingSignals] = useState({});
   const [signalCounts, setSignalCounts] = useState({});
+  const [signalStats, setSignalStats] = useState({});
+  const [signalFilter, setSignalFilter] = useState("all");
+  const [fng, setFng] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("newest");
 
   useEffect(() => {
     if (!ping) return;
+
+    GetFearAndGreed(
+      (data) => {
+        const value = parseInt(data?.fng, 10);
+        setFng({
+          value: Number.isNaN(value) ? null : value,
+          label: data?.fng_class || "",
+        });
+      },
+      (err) => console.error("Failed to fetch Fear & Greed:", err)
+    );
 
     GetBots((res) => {
       const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
@@ -105,10 +186,9 @@ export default function Bots() {
     GetSignals(
       botId,
       (data) => {
-        setSignalCounts((prev) => ({ 
-          ...prev, 
-          [botId]: Array.isArray(data) ? data.length : 0 
-        }));
+        const list = Array.isArray(data) ? data : [];
+        setSignalCounts((prev) => ({ ...prev, [botId]: list.length }));
+        setSignalStats((prev) => ({ ...prev, [botId]: computeStats(list) }));
       },
       (err) => {
         console.error(`Failed to fetch signal count for bot ${botId}:`, err);
@@ -119,17 +199,21 @@ export default function Bots() {
   function fetchSignals(botId, e) {
     if (e) e.stopPropagation();
 
+    setSignalFilter("all");
+
     if (signals[botId]) {
       setSelectedBot(botId);
       return;
     }
 
     setLoadingSignals((prev) => ({ ...prev, [botId]: true }));
-    
+
     GetSignals(
       botId,
       (data) => {
-        setSignals((prev) => ({ ...prev, [botId]: data }));
+        const list = Array.isArray(data) ? data : [];
+        setSignals((prev) => ({ ...prev, [botId]: list }));
+        setSignalStats((prev) => ({ ...prev, [botId]: computeStats(list) }));
         setSelectedBot(botId);
         setLoadingSignals((prev) => ({ ...prev, [botId]: false }));
       },
@@ -160,7 +244,38 @@ export default function Bots() {
     }
   }
 
-  const selectedBotSignals = selectedBot ? signals[selectedBot] : [];
+  const displayedBots = (() => {
+    const q = search.trim().toLowerCase();
+    let list = bots;
+    if (q) {
+      list = bots.filter((b) =>
+        (b.bot_assets || []).some((a) => String(a).toLowerCase().includes(q))
+      );
+    }
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      if (sortKey === "roi") return parseFloat(b.roi || 0) - parseFloat(a.roi || 0);
+      if (sortKey === "winRate") {
+        const wa = signalStats[a.id]?.winRate ?? -1;
+        const wb = signalStats[b.id]?.winRate ?? -1;
+        return wb - wa;
+      }
+      if (sortKey === "signals") {
+        return (signalCounts[b.id] || 0) - (signalCounts[a.id] || 0);
+      }
+      // newest
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+    return sorted;
+  })();
+
+  const selectedBotSignals = selectedBot ? signals[selectedBot] || [] : [];
+  const selectedBotStats = selectedBot ? signalStats[selectedBot] : null;
+  const filteredSignals = (selectedBotSignals || []).filter((s) => {
+    if (signalFilter === "open") return s.is_open;
+    if (signalFilter === "closed") return !s.is_open;
+    return true;
+  });
 
   // Auth check
   if (!ping) {
@@ -180,13 +295,29 @@ export default function Bots() {
     <div className="min-h-screen bg-neutral-950 text-white px-4 py-4 sm:p-6">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
-        <header className="mb-6">
-          <h1 className="text-xl sm:text-2xl font-semibold text-white">Your Bots</h1>
-          <p className="text-xs sm:text-sm text-white/40">
-            {bots.length === 0
-              ? "Create your first trading bot"
-              : `${bots.length} active ${bots.length === 1 ? "bot" : "bots"}`}
-          </p>
+        <header className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-white">Your Bots</h1>
+            <p className="text-xs sm:text-sm text-white/40">
+              {bots.length === 0
+                ? "Create your first trading bot"
+                : `${bots.length} active ${bots.length === 1 ? "bot" : "bots"}`}
+            </p>
+          </div>
+
+          {/* Fear & Greed badge */}
+          {fng && (
+            <div className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2">
+              <ActivityIcon className="h-4 w-4 text-white/30" />
+              <div className="leading-tight">
+                <div className="text-[10px] uppercase text-white/30">Fear &amp; Greed</div>
+                <div className="text-sm font-semibold">
+                  <span className={fngColor(fng.value)}>{fng.value ?? "—"}</span>
+                  {fng.label && <span className="ml-1 text-xs font-normal text-white/40">{fng.label}</span>}
+                </div>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Risk Settings */}
@@ -212,16 +343,49 @@ export default function Bots() {
           </div>
         )}
 
+        {/* Search + Sort toolbar */}
+        {bots.length > 1 && (
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by asset (e.g. BTC)"
+                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-3 pr-3 text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20"
+              />
+            </div>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value)}
+              className="rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-sm text-white outline-none transition focus:border-white/20"
+            >
+              <option value="newest">Newest</option>
+              <option value="roi">ROI</option>
+              <option value="winRate">Win rate</option>
+              <option value="signals">Most signals</option>
+            </select>
+          </div>
+        )}
+
+        {/* No search results */}
+        {bots.length > 0 && displayedBots.length === 0 && (
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-8 text-center text-sm text-white/40">
+            No bots match “{search}”.
+          </div>
+        )}
+
         {/* Bots Grid */}
         {bots.length > 0 && (
           <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {bots.map((bot) => {
+            {displayedBots.map((bot) => {
               const indicators = [
                 ...(bot?.rsi ? ["RSI"] : []),
                 ...(bot?.bb ? ["BB"] : []),
                 ...(bot?.sr ? ["S/R"] : []),
               ];
               const signalCount = signalCounts[bot.id] || 0;
+              const stats = signalStats[bot.id];
 
               return (
                 <div
@@ -236,13 +400,11 @@ export default function Bots() {
                       </div>
                       <div>
                         <h3 className="text-sm font-medium text-white">Trading Bot</h3>
-                        <p className="text-xs text-white/40">
-                          {bot.created_at
-                            ? new Date(bot.created_at).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })
-                            : "Recently created"}
+                        <p
+                          className="text-xs text-white/40"
+                          title={bot.created_at ? new Date(bot.created_at).toLocaleString() : ""}
+                        >
+                          {bot.created_at ? `Created ${timeAgo(bot.created_at)}` : "Recently created"}
                         </p>
                       </div>
                     </div>
@@ -315,6 +477,36 @@ export default function Bots() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Performance summary (from signal history) */}
+                  {stats && stats.total > 0 && (
+                    <div className="mb-3 flex items-center gap-3 text-[11px] text-white/50">
+                      <span className="flex items-center gap-1">
+                        <span className="text-white/30">Win</span>
+                        <span className="font-medium text-white/80">
+                          {stats.winRate != null ? `${stats.winRate}%` : "—"}
+                        </span>
+                      </span>
+                      <span className="h-3 w-px bg-white/10" />
+                      <span className="flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                        {stats.open} open
+                      </span>
+                      <span className="h-3 w-px bg-white/10" />
+                      <span
+                        className={`font-medium ${
+                          stats.realized > 0
+                            ? "text-emerald-400"
+                            : stats.realized < 0
+                            ? "text-red-400"
+                            : "text-white/60"
+                        }`}
+                      >
+                        {stats.realized > 0 ? "+" : ""}
+                        {stats.realized.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
 
                   {/* Signals Button */}
                   <button
@@ -427,7 +619,7 @@ export default function Bots() {
                 {/* Modal Header */}
                 <div className="border-b border-white/5 p-4 sm:p-5">
                   <div className="sm:hidden w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
-                  
+
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-base sm:text-lg font-semibold">Trading Signals</h2>
@@ -442,24 +634,80 @@ export default function Bots() {
                       <XIcon className="h-4 w-4" />
                     </button>
                   </div>
+
+                  {/* Stat chips */}
+                  {selectedBotStats && selectedBotStats.total > 0 && (
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <div className="rounded-xl bg-white/[0.03] px-3 py-2">
+                        <div className="text-[10px] uppercase text-white/30">Win rate</div>
+                        <div className="text-sm font-semibold">
+                          {selectedBotStats.winRate != null ? `${selectedBotStats.winRate}%` : "—"}
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-white/[0.03] px-3 py-2">
+                        <div className="text-[10px] uppercase text-white/30">Open</div>
+                        <div className="text-sm font-semibold">{selectedBotStats.open}</div>
+                      </div>
+                      <div className="rounded-xl bg-white/[0.03] px-3 py-2">
+                        <div className="text-[10px] uppercase text-white/30">Realized P&L</div>
+                        <div
+                          className={`text-sm font-semibold ${
+                            selectedBotStats.realized > 0
+                              ? "text-emerald-400"
+                              : selectedBotStats.realized < 0
+                              ? "text-red-400"
+                              : ""
+                          }`}
+                        >
+                          {selectedBotStats.realized > 0 ? "+" : ""}
+                          {selectedBotStats.realized.toFixed(2)}%
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Filter tabs */}
+                  {selectedBotSignals?.length > 0 && (
+                    <div className="mt-3 flex gap-1.5">
+                      {[
+                        { id: "all", label: "All" },
+                        { id: "open", label: "Open" },
+                        { id: "closed", label: "Closed" },
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setSignalFilter(tab.id)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                            signalFilter === tab.id
+                              ? "bg-white text-black"
+                              : "bg-white/5 text-white/50 hover:bg-white/10"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Signals List */}
                 <div className="max-h-[60vh] overflow-y-auto p-4 sm:p-5">
-                  {!selectedBotSignals || selectedBotSignals.length === 0 ? (
+                  {!filteredSignals || filteredSignals.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <ActivityIcon className="mb-3 h-8 w-8 text-white/20" />
-                      <p className="text-sm text-white/50">No signals yet</p>
-                      <p className="text-xs text-white/30">Signals will appear when your bot generates them</p>
+                      <p className="text-sm text-white/50">
+                        {selectedBotSignals?.length > 0 ? "No signals in this filter" : "No signals yet"}
+                      </p>
+                      <p className="text-xs text-white/30">
+                        {selectedBotSignals?.length > 0
+                          ? "Try a different filter"
+                          : "Signals will appear when your bot generates them"}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {selectedBotSignals.map((signal) => {
-                        const pnl = signal.close_price && signal.open_price
-                          ? signal.is_long
-                            ? ((signal.close_price - signal.open_price) / signal.open_price) * 100
-                            : ((signal.open_price - signal.close_price) / signal.open_price) * 100
-                          : null;
+                      {filteredSignals.map((signal) => {
+                        const pnl = signalPnlPct(signal);
 
                         return (
                           <div
@@ -512,14 +760,16 @@ export default function Bots() {
                                     </div>
                                   )}
                                   <div>
-                                    <div className="text-[10px] text-white/30">Date</div>
-                                    <div className="font-medium">
-                                      {signal.created_at
-                                        ? new Date(signal.created_at).toLocaleDateString("en-US", {
-                                            month: "short",
-                                            day: "numeric",
-                                          })
-                                        : "—"}
+                                    <div className="text-[10px] text-white/30">When</div>
+                                    <div
+                                      className="font-medium"
+                                      title={
+                                        signal.created_at
+                                          ? new Date(signal.created_at).toLocaleString()
+                                          : ""
+                                      }
+                                    >
+                                      {timeAgo(signal.created_at)}
                                     </div>
                                   </div>
                                 </div>

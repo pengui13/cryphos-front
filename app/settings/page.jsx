@@ -9,10 +9,12 @@ import {
   AddTelegram,
   GetProfile,
   UpdateUsername,
+  UpdateWallet,
   ChangePassword,
   UpdateAvatar,
 } from "../api/ApiWrapper";
 import AuthScreen from "../components/AuthScreen.jsx";
+import { DONATION_WALLET, DONATION_NETWORK } from "../constants";
 
 // ============ ICONS ============
 function TelegramIcon({ className }) {
@@ -101,6 +103,9 @@ function AccountCard({ setSnack }) {
   const [usernameInput, setUsernameInput] = useState("");
   const [usernameSaving, setUsernameSaving] = useState(false);
 
+  const [walletInput, setWalletInput] = useState("");
+  const [walletSaving, setWalletSaving] = useState(false);
+
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
@@ -111,12 +116,19 @@ function AccountCard({ setSnack }) {
       .then((data) => {
         setProfile(data);
         setUsernameInput(data?.username || "");
+        setWalletInput(data?.usdt_trc20_wallet || "");
       })
       .catch((err) => console.error("Failed to load profile:", err));
   }, []);
 
   const usernameChanged =
     usernameInput.trim() && usernameInput.trim() !== profile?.username;
+
+  const walletTrimmed = walletInput.trim();
+  const walletChanged = walletTrimmed !== (profile?.usdt_trc20_wallet || "");
+  // Light client-side shape check; backend does full base58 + checksum.
+  const walletLooksValid =
+    walletTrimmed === "" || /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(walletTrimmed);
 
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0];
@@ -150,6 +162,24 @@ function AccountCard({ setSnack }) {
       setSnack({ visible: true, status: false, type: "prime", info: err?.data?.detail || "Failed to update username" });
     } finally {
       setUsernameSaving(false);
+    }
+  }
+
+  async function handleSaveWallet() {
+    if (!walletLooksValid) {
+      setSnack({ visible: true, status: false, type: "prime", info: "That doesn't look like a TRC20 wallet address" });
+      return;
+    }
+    setWalletSaving(true);
+    try {
+      const data = await UpdateWallet(walletTrimmed);
+      setProfile(data);
+      setWalletInput(data.usdt_trc20_wallet || "");
+      setSnack({ visible: true, status: true, type: "prime", info: walletTrimmed ? "Wallet saved" : "Wallet removed" });
+    } catch (err) {
+      setSnack({ visible: true, status: false, type: "prime", info: err?.data?.detail || "Failed to save wallet" });
+    } finally {
+      setWalletSaving(false);
     }
   }
 
@@ -247,6 +277,38 @@ function AccountCard({ setSnack }) {
         </div>
       </div>
 
+      {/* TRC20 USDT wallet */}
+      <div className="mb-6">
+        <label className="mb-2 block text-xs sm:text-sm text-white/60">
+          USDT wallet <span className="text-white/30">(TRC20)</span>
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={walletInput}
+            onChange={(e) => setWalletInput(e.target.value)}
+            placeholder="T..."
+            spellCheck={false}
+            autoComplete="off"
+            className={`w-full rounded-xl border bg-white/5 py-2.5 px-3 font-mono text-sm text-white placeholder-white/20 outline-none transition focus:border-white/20 ${
+              walletLooksValid ? "border-white/10" : "border-red-500/40"
+            }`}
+          />
+          <button
+            onClick={handleSaveWallet}
+            disabled={walletSaving || !walletChanged || !walletLooksValid}
+            className="rounded-xl bg-white px-4 sm:px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {walletSaving ? "..." : "Save"}
+          </button>
+        </div>
+        <p className="mt-1.5 text-[11px] text-white/30">
+          {walletLooksValid
+            ? "Used for crypto payments to access your account (coming soon)."
+            : "TRC20 addresses start with “T” and are 34 characters long."}
+        </p>
+      </div>
+
       {/* Password */}
       <div>
         <label className="mb-2 block text-xs sm:text-sm text-white/60">Change password</label>
@@ -284,6 +346,53 @@ function AccountCard({ setSnack }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============ ACCESS / PAYMENT NOTICE ============
+function AccessNoticeCard() {
+  return (
+    <div className="rounded-xl sm:rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-4 sm:p-6">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10">
+          <svg className="h-5 w-5 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <rect x="4" y="10" width="16" height="10" rx="2" />
+            <path strokeLinecap="round" d="M8 10V7a4 4 0 118 0v3" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="flex items-center gap-2 text-sm sm:text-base font-medium text-white">
+            Access
+            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+              Free now
+            </span>
+          </h2>
+          <p className="text-xs text-white/40">How paid access will work</p>
+        </div>
+      </div>
+
+      <p className="mb-4 text-sm leading-relaxed text-white/60">
+        Cryphos is completely free to use right now. A little later, continued
+        access will require a payment in USDT — you&apos;ll send it to the wallet
+        below. We&apos;ll let you know before anything changes.
+      </p>
+
+      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        {DONATION_NETWORK}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5">
+        <code className="min-w-0 break-all font-mono text-xs text-white/70 sm:text-sm">
+          {DONATION_WALLET}
+        </code>
+        <CopyButton value={DONATION_WALLET} />
+      </div>
+
+      <p className="mt-2 text-[11px] text-white/30">
+        Only send USDT on the TRC20 (Tron) network to this address.
+      </p>
     </div>
   );
 }
@@ -489,6 +598,9 @@ export default function SettingsPage() {
 
           {/* Account Card */}
           <AccountCard setSnack={setSnackData} />
+
+          {/* Access / payment notice */}
+          <AccessNoticeCard />
         </div>
       </div>
     </div>
