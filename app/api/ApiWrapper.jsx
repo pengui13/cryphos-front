@@ -481,8 +481,29 @@ export function UpdateRiskSettings(data, onSuccess, onError) {
   });
 }
 
-// Backtesting is not wired on the backend yet — the endpoint does not exist.
-// The wrapper is removed to avoid dead calls; restore it when the engine ships.
+// Replays a bot's strategy over stored history. `interval` (one of the
+// backend's 1MIN…1DAY codes) forces every indicator onto one timeframe; leave
+// it empty to use the timeframes the bot is configured with.
+export function RunBacktest(botId, params, onSuccess, onError) {
+  const body = {
+    usdt_value: params.usdt_value,
+    take_profit: params.take_profit,
+    stop_loss: params.stop_loss,
+  };
+  if (params.interval) body.interval = params.interval;
+  if (params.bars) body.bars = params.bars;
+
+  return apiRequest({
+    method: "POST",
+    endpoint: `${BASE_URL}bots/backtest/${botId}/`,
+    body,
+    onSuccess: (json) => onSuccess?.(json),
+    onError: (err) => {
+      console.error("RunBacktest failed:", err);
+      onError?.(err);
+    },
+  });
+}
 
 export function GetBillingStatus(onSuccess, onError) {
   return apiRequest({

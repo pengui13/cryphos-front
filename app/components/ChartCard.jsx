@@ -3,6 +3,7 @@
 
 import { useRef, useEffect, useMemo } from "react";
 import * as LWC from "lightweight-charts";
+import { formatPrice, priceDecimals } from "./backtestFormat";
 
 const THEME = {
   bg: "#0B0B12",
@@ -96,17 +97,7 @@ export default function ChartCard({ result, height = 480, className = "" }) {
     const el = elRef.current;
     if (!el || !ohlcCandles.length) return;
 
-    const last = ohlcCandles.at(-1);
-    const decimals =
-      last && last.close != null
-        ? Math.min(
-            8,
-            Math.max(
-              0,
-              String(last.close).split(".")[1]?.length || 2
-            )
-          )
-        : 2;
+    const decimals = priceDecimals(ohlcCandles.at(-1)?.close);
 
     const chart = LWC.createChart(el, {
       width: el.clientWidth || 900,
@@ -201,25 +192,34 @@ export default function ChartCard({ result, height = 480, className = "" }) {
       });
     }
 
-    // markers from candles (order_open / order_close)
+    // markers from candles (order_open / order_close). A close is drawn
+    // before an open on the same bar, since the old trade ends first.
     const markers = [];
     candlesRaw.forEach((c) => {
-      if (c.order_open) {
-        markers.push({
-          time: Number(c.time),
-          position: "belowBar",
-          color: THEME.buy,
-          shape: "arrowUp",
-          text: `BUY ${Number(c.order_open.price).toFixed(2)}`,
-        });
-      }
       if (c.order_close) {
+        const won = Number(c.order_close.pnl) > 0;
+        const reason =
+          c.order_close.reason === "take_profit"
+            ? "TP"
+            : c.order_close.reason === "stop_loss"
+            ? "SL"
+            : "Exit";
         markers.push({
           time: Number(c.time),
           position: "aboveBar",
-          color: THEME.sell,
-          shape: "arrowDown",
-          text: `SELL ${Number(c.order_close.close_price).toFixed(2)}`,
+          color: won ? THEME.buy : THEME.sell,
+          shape: "circle",
+          text: `${reason} ${formatPrice(c.order_close.close_price)}`,
+        });
+      }
+      if (c.order_open) {
+        const isLong = c.order_open.side !== "SELL";
+        markers.push({
+          time: Number(c.time),
+          position: isLong ? "belowBar" : "aboveBar",
+          color: isLong ? THEME.buy : THEME.sell,
+          shape: isLong ? "arrowUp" : "arrowDown",
+          text: `${isLong ? "LONG" : "SHORT"} ${formatPrice(c.order_open.price)}`,
         });
       }
     });
@@ -273,11 +273,11 @@ export default function ChartCard({ result, height = 480, className = "" }) {
               className="text-xl sm:text-2xl font-semibold"
               style={{ color: THEME.text }}
             >
-              {Number.isFinite(lastClose) ? lastClose : "—"}
+              {formatPrice(lastClose)}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Pill>{rsiLabel}</Pill>
+            {rsiCfg?.period != null && <Pill>{rsiLabel}</Pill>}
             <Pill>{(result?.orders?.length || 0) + " trades"}</Pill>
           </div>
         </div>

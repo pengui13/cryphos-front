@@ -9,9 +9,13 @@ import {
   BarChart3,
   Target,
   TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 import ChartCard from "./ChartCard";
 import TradesTable from "./TradeTable";
+import { formatNumber, timeframeLabel } from "./backtestFormat";
+
+const INDICATOR_NAMES = { funding: "Funding Rates", fng: "Fear & Greed" };
 
 const THEME = {
   bg: "#0B0B12",
@@ -23,10 +27,10 @@ export default function BacktestModal({
   onClose,
   loading,
   result,
+  error,
   selectedId,
 }) {
   const [selectedAsset, setSelectedAsset] = useState(null);
-  const [selectedTimeframe, setSelectedTimeframe] = useState("BASE"); // BASE | 1MIN | 5MIN
 
   // ESC close
   useEffect(() => {
@@ -38,11 +42,10 @@ export default function BacktestModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // Init asset + timeframe when result changes
+  // Init asset when result changes
   useEffect(() => {
     if (!result) {
       setSelectedAsset(null);
-      setSelectedTimeframe("BASE");
       return;
     }
 
@@ -54,8 +57,6 @@ export default function BacktestModal({
     } else {
       setSelectedAsset(null);
     }
-
-    setSelectedTimeframe("BASE");
   }, [result]);
 
   if (!open) return null;
@@ -80,39 +81,15 @@ export default function BacktestModal({
   const rsiCfg = result?.rsi_config || {};
   const params = result?.parameters || {};
 
-  const baseTfLabel =
-    result?.timeframes && result.timeframes.length > 0
-      ? result.timeframes[0]
-      : "BASE";
-
-  // Candles per TF for current asset
-  const baseCandles = currentAssetData?.candles || [];
-  const candles1m = currentAssetData?.candles_1MIN || [];
-  const candles5m = currentAssetData?.candles_5MIN || [];
-
-  // Timeframe options (only show those that actually have candles)
-  const tfOptions = [];
-  if (baseCandles.length) {
-    tfOptions.push({ id: "BASE", label: baseTfLabel });
-  }
-  if (candles1m.length) {
-    tfOptions.push({ id: "1MIN", label: "1 MIN" });
-  }
-  if (candles5m.length) {
-    tfOptions.push({ id: "5MIN", label: "5 MIN" });
-  }
-
-  // What candles to display on chart
-  let displayCandles = [];
-  if (selectedTimeframe === "1MIN" && candles1m.length) {
-    displayCandles = candles1m;
-  } else if (selectedTimeframe === "5MIN" && candles5m.length) {
-    displayCandles = candles5m;
-  } else {
-    displayCandles = baseCandles;
-  }
+  // Finest first; the candles are on timeframes[0].
+  const timeframes = (result?.timeframes || []).map(timeframeLabel);
+  const displayCandles = currentAssetData?.candles || [];
 
   const hasData = !!result && displayCandles.length > 0;
+  // Reported by the backend when there is no stored history to replay.
+  const emptyReason = error || result?.error || null;
+  const unsupported = result?.unsupported_indicators || [];
+  const ruined = result?.ruined_assets || [];
 
   // All orders across all assets
   const allOrders = result?.orders || [];
@@ -123,11 +100,17 @@ export default function BacktestModal({
     result?.total_pnl != null ? Number(result.total_pnl) : null;
   const roi = result?.roi != null ? Number(result.roi) : null;
 
-  // Stats & per-view PnL
+  // Stats & per-view PnL. Each asset is funded with its own stake, so an
+  // asset's return is its final balance against that stake.
   const stats = isMultiAsset ? currentAssetData?.stats : result?.stats;
   const viewTotalPnl = isMultiAsset
     ? Number(currentAssetData?.total_pnl ?? 0)
     : totalPnlGlobal ?? 0;
+  const stake = Number(params.usdt_value);
+  const viewRoi =
+    isMultiAsset && currentAssetData?.final_equity != null && stake > 0
+      ? ((Number(currentAssetData.final_equity) - stake) / stake) * 100
+      : roi;
 
   return (
     <div
@@ -173,22 +156,18 @@ export default function BacktestModal({
                   <div className="text-sm font-semibold tracking-tight text-slate-100">
                     Backtest • Bot #{selectedId ?? "—"}
                     {isMultiAsset ? " • Multi-Asset" : ` • ${assetSymbol}`}
-                    {result?.timeframes && result.timeframes.length > 0
-                      ? ` • ${result.timeframes.join(" + ")}`
-                      : ""}
+                    {timeframes.length > 0 ? ` • ${timeframes.join(" + ")}` : ""}
                   </div>
                   <div className="text-[11px] text-slate-400">
                     {loading
-                      ? "Running your strategy on 90d of data…"
+                      ? "Replaying your strategy over stored history…"
                       : hasData
                       ? `${ordersCount} trade${
                           ordersCount === 1 ? "" : "s"
                         } • TP ${params.take_profit ?? "—"}% / SL ${
                           params.stop_loss ?? "—"
                         }% • ${params.usdt_value ?? "—"} USDT${
-                          result?.timeframes?.length > 1
-                            ? ` • Intersection: ${result.timeframes.join(" + ")}`
-                            : ""
+                          isMultiAsset ? " per asset" : ""
                         }`
                       : "No data returned"}
                   </div>
@@ -196,7 +175,7 @@ export default function BacktestModal({
               </div>
 
               <div className="flex items-center gap-3">
-                {roi != null && (
+                {roi != null && !loading && (
                   <div
                     className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                       roi >= 0
@@ -208,7 +187,7 @@ export default function BacktestModal({
                     {roi.toFixed(2)}%
                   </div>
                 )}
-                {totalPnlGlobal != null && (
+                {totalPnlGlobal != null && !loading && (
                   <div
                     className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                       totalPnlGlobal >= 0
@@ -239,10 +218,7 @@ export default function BacktestModal({
                 {assets.map((asset) => (
                   <button
                     key={asset}
-                    onClick={() => {
-                      setSelectedAsset(asset);
-                      setSelectedTimeframe("BASE");
-                    }}
+                    onClick={() => setSelectedAsset(asset)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                       selectedAsset === asset
                         ? "bg-indigo-500/20 ring-1 ring-indigo-400/30 text-indigo-200"
@@ -250,51 +226,34 @@ export default function BacktestModal({
                     }`}
                   >
                     {asset}
+                    {ruined.includes(asset) && (
+                      <span className="ml-1 text-rose-300" title="Balance ran out">
+                        ✕
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Timeframes intersection + chart timeframe selector */}
-            {result?.timeframes && result.timeframes.length > 0 && (
+            {/* Timeframes the simulation read */}
+            {timeframes.length > 0 && (
               <div
-                className="px-5 py-3 flex flex-wrap items-center justify-between gap-3 border-t"
+                className="px-5 py-3 flex flex-wrap items-center gap-2 border-t"
                 style={{ borderColor: THEME.border }}
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">
-                    Timeframe Intersection:
+                <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">
+                  Timeframes:
+                </span>
+                {timeframes.map((tf, i) => (
+                  <span
+                    key={tf}
+                    className="px-2.5 py-1 rounded-lg bg-blue-500/15 ring-1 ring-blue-400/20 text-blue-300 text-xs font-medium"
+                  >
+                    {tf}
+                    {i === 0 && timeframes.length > 1 ? " · chart" : ""}
                   </span>
-                  {result.timeframes.map((tf) => (
-                    <span
-                      key={tf}
-                      className="px-2.5 py-1 rounded-lg bg-blue-500/15 ring-1 ring-blue-400/20 text-blue-300 text-xs font-medium"
-                    >
-                      {tf}
-                    </span>
-                  ))}
-                </div>
-
-                {currentAssetData && tfOptions.length > 1 && (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] text-slate-400 mr-1">
-                      Chart timeframe:
-                    </span>
-                    {tfOptions.map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setSelectedTimeframe(opt.id)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition ${
-                          selectedTimeframe === opt.id
-                            ? "bg-violet-500/25 ring-1 ring-violet-400/40 text-violet-100"
-                            : "bg-white/5 ring-1 ring-white/10 text-slate-300 hover:bg-white/10"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -311,20 +270,45 @@ export default function BacktestModal({
               </div>
             ) : !hasData ? (
               <div className="px-6 py-16 text-center text-slate-400">
-                No data.
+                {emptyReason || "No data."}
               </div>
             ) : (
               <div className="py-6 px-5 space-y-5">
-                {/* stats section (per current asset or global single-asset) */}
-                {stats?.total_trades > 0 && (
-                  <StatsSection
-                    stats={stats}
-                    roi={roi}
-                    totalPnl={viewTotalPnl}
-                  />
+                {unsupported.length > 0 && (
+                  <Notice>
+                    {unsupported
+                      .map((u) => INDICATOR_NAMES[u.indicator] || u.indicator)
+                      .join(" and ")}{" "}
+                    {unsupported.length === 1 ? "has" : "have"} no stored history,
+                    so {unsupported.length === 1 ? "it was" : "they were"} left
+                    out of this simulation. The live bot still applies{" "}
+                    {unsupported.length === 1 ? "it" : "them"}, so expect fewer
+                    trades than shown here.
+                  </Notice>
+                )}
+                {ruined.length > 0 && (
+                  <Notice>
+                    The balance ran out on {ruined.join(", ")}; no further trades
+                    were taken there.
+                  </Notice>
                 )}
 
-                {/* chart - show current asset & selected timeframe */}
+                {/* stats section (per current asset or global single-asset) */}
+                {stats?.total_trades > 0 ? (
+                  <StatsSection
+                    stats={stats}
+                    roi={viewRoi}
+                    totalPnl={viewTotalPnl}
+                  />
+                ) : (
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4 text-sm text-slate-400">
+                    The strategy&apos;s conditions never lined up on{" "}
+                    {isMultiAsset ? assetSymbol : "this history"}, so no trades
+                    were opened.
+                  </div>
+                )}
+
+                {/* chart - show current asset */}
                 {currentAssetData && (
                   <ChartCard
                     result={{
@@ -341,7 +325,6 @@ export default function BacktestModal({
                 {/* trades table - all orders from all assets */}
                 <div className="rounded-2xl border border-white/5 bg-white/[0.02]">
                   <TradesTable
-                    candles={allOrders.length > 0 ? [{}] : []}
                     orders={allOrders}
                     totalPnl={totalPnlGlobal}
                     isMultiAsset={isMultiAsset}
@@ -356,11 +339,22 @@ export default function BacktestModal({
   );
 }
 
+function Notice({ children }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-3 text-xs leading-relaxed text-amber-200/90">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+      <div>{children}</div>
+    </div>
+  );
+}
+
 function StatsSection({ stats, roi, totalPnl }) {
   const winRate = Number(stats.win_rate) || 0;
   const meanPnl = Number(stats.mean_pnl) || 0;
   const maxPnl = Number(stats.max_pnl) || 0;
   const minPnl = Number(stats.min_pnl) || 0;
+  const drawdownPct = Number(stats.max_drawdown_pct) || 0;
+  const profitFactor = Number(stats.profit_factor) || 0;
 
   return (
     <div className="space-y-4">
@@ -502,7 +496,7 @@ function StatsSection({ stats, roi, totalPnl }) {
       </div>
 
       {/* secondary metrics row */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div
           className="rounded-2xl border p-4 backdrop-blur-xl"
           style={{
@@ -543,6 +537,52 @@ function StatsSection({ stats, roi, totalPnl }) {
             {meanPnl >= 0 ? "+" : ""}
             {meanPnl.toFixed(2)}
           </div>
+          <div className="mt-1 text-[11px] text-slate-500">
+            best {formatNumber(maxPnl)} · worst {formatNumber(minPnl)}
+          </div>
+        </div>
+
+        <div
+          className="rounded-2xl border p-4 backdrop-blur-xl"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(244,63,94,0.06), rgba(244,63,94,0.03))",
+            borderColor: "rgba(244,63,94,0.15)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+          }}
+        >
+          <div className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
+            Max Drawdown
+          </div>
+          <div className="text-2xl font-bold text-rose-300">
+            {formatNumber(drawdownPct)}%
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">
+            {formatNumber(stats.max_drawdown)} USDT from peak
+          </div>
+        </div>
+
+        <div
+          className="rounded-2xl border p-4 backdrop-blur-xl"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(59,130,246,0.06), rgba(59,130,246,0.03))",
+            borderColor: "rgba(59,130,246,0.15)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+          }}
+        >
+          <div className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
+            Profit Factor
+          </div>
+          <div
+            className={`text-2xl font-bold ${
+              profitFactor >= 1 ? "text-emerald-300" : "text-rose-300"
+            }`}
+          >
+            {/* 0 from the backend means there were no losing trades. */}
+            {profitFactor > 0 ? formatNumber(profitFactor) : stats.profitable_trades > 0 ? "∞" : "0"}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">gross profit ÷ gross loss</div>
         </div>
       </div>
     </div>

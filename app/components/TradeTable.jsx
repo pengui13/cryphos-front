@@ -3,113 +3,97 @@
 
 import { ArrowUpRight, ArrowDownLeft, Clock, Download } from "lucide-react";
 import { useState } from "react";
+import { formatNumber, formatPrice } from "./backtestFormat";
 
 const THEME = {
   bg: "#0B0B12",
   border: "rgba(255,255,255,0.06)",
 };
 
-export default function TradesTable({ candles = [], orders = [], totalPnl, isMultiAsset = false }) {
+const STATUS_LABELS = {
+  take_profit: "Take profit",
+  stop_loss: "Stop loss",
+};
+
+// Backend orders: { asset, side: LONG|SHORT, open_time, price, value,
+// close_time, close_price, closed, pnl, close_reason }. A trade still open
+// when history ends is marked to the last close and has closed = false.
+function toRow(o, i) {
+  const entryPx = Number(o.price);
+  const qty = Number(o.value ?? 0);
+  const isLong = o.side !== "SHORT";
+  const exitPx = o.close_price != null ? Number(o.close_price) : null;
+
+  const plAbs =
+    o.pnl != null
+      ? Number(o.pnl)
+      : exitPx != null
+      ? (exitPx - entryPx) * qty * (isLong ? 1 : -1)
+      : 0;
+  // Return on the money committed to the trade, not on the unit price.
+  const notional = entryPx * qty;
+  const plPct = notional > 0 ? (plAbs / notional) * 100 : 0;
+
+  const endTs = o.close_time ?? o.open_time;
+  const mins = Math.max(0, Math.round((endTs - o.open_time) / 60));
+
+  return {
+    id: i + 1,
+    asset: o.asset || "—",
+    side: isLong ? "LONG" : "SHORT",
+    entryTime: new Date(o.open_time * 1000).toLocaleString(),
+    exitTime: o.closed && o.close_time ? new Date(o.close_time * 1000).toLocaleString() : "Open",
+    entry: entryPx,
+    exit: exitPx,
+    size: qty,
+    plAbs,
+    plPct,
+    mins,
+    status: o.closed ? STATUS_LABELS[o.close_reason] || "Closed" : "Open",
+    closed: !!o.closed,
+    green: plAbs >= 0,
+  };
+}
+
+export default function TradesTable({ orders = [], totalPnl, isMultiAsset = false }) {
   const [expandedRow, setExpandedRow] = useState(null);
-  const lastClose = candles.length > 0 ? Number(candles.at(-1)?.close_price) : null;
+  const rows = orders.map(toRow);
 
-  const rows = orders.map((o, i) => {
-    const entryPx = Number(o.price);
-    const qty = Number(o.value ?? 1);
-    const hasExit = o.closed && o.close_time != null && o.close_price != null;
+  const headers = [
+    "Trade #",
+    ...(isMultiAsset ? ["Asset"] : []),
+    "Side",
+    "Entry Time",
+    "Exit Time",
+    "Size",
+    "Entry Price",
+    "Exit Price",
+    "P/L",
+    "Return %",
+    "Duration (min)",
+    "Status",
+  ];
 
-    const exitPx = hasExit ? Number(o.close_price) : lastClose != null ? lastClose : entryPx;
-
-    const backendPnl = o.pnl != null ? Number(o.pnl) : (exitPx - entryPx) * qty;
-    const plAbs = backendPnl;
-    const plPct = (plAbs / entryPx) * 100;
-
-    const endTs = hasExit ? o.close_time : candles.at(-1)?.time ?? o.open_time;
-    const mins = Math.max(0, Math.round(((endTs - o.open_time) * 1000) / 60000));
-
-    return {
-      id: i + 1,
-      asset: o.asset || "—",
-      entryTime: new Date(o.open_time * 1000).toLocaleString(),
-      exitTime: hasExit ? new Date(o.close_time * 1000).toLocaleString() : "Open",
-      entry: entryPx,
-      exit: exitPx,
-      size: qty,
-      plAbs,
-      plPct,
-      mins,
-      status: hasExit ? "Closed" : "Open",
-      green: plAbs >= 0,
-    };
-  });
-
-  const fmt = (v, d = 2) =>
-    v == null
-      ? "—"
-      : new Intl.NumberFormat("en-US", {
-          maximumFractionDigits: d,
-        }).format(v);
+  const exportRows = () =>
+    rows.map((r) => [
+      r.id,
+      ...(isMultiAsset ? [r.asset] : []),
+      r.side,
+      r.entryTime,
+      r.exitTime,
+      r.size,
+      r.entry,
+      r.exit,
+      r.plAbs,
+      Number(r.plPct.toFixed(4)),
+      r.mins,
+      r.status,
+    ]);
 
   const exportToCSV = () => {
-    const headers = isMultiAsset
-      ? [
-          "Trade #",
-          "Asset",
-          "Entry Time",
-          "Exit Time",
-          "Size",
-          "Entry Price",
-          "Exit Price",
-          "P/L",
-          "Return %",
-          "Duration (min)",
-          "Status",
-        ]
-      : [
-          "Trade #",
-          "Entry Time",
-          "Exit Time",
-          "Size",
-          "Entry Price",
-          "Exit Price",
-          "P/L",
-          "Return %",
-          "Duration (min)",
-          "Status",
-        ];
-
-    const data = rows.map((r) =>
-      isMultiAsset
-        ? [
-            r.id,
-            r.asset,
-            r.entryTime,
-            r.exitTime,
-            r.size,
-            r.entry,
-            r.exit,
-            r.plAbs,
-            r.plPct,
-            r.mins,
-            r.status,
-          ]
-        : [
-            r.id,
-            r.entryTime,
-            r.exitTime,
-            r.size,
-            r.entry,
-            r.exit,
-            r.plAbs,
-            r.plPct,
-            r.mins,
-            r.status,
-          ]
-    );
-
     const csv = [
       headers.join(","),
-      ...data.map((row) =>
+      ...exportRows().map((row) =>
         row
           .map((cell) =>
             typeof cell === "string" && cell.includes(",") ? `"${cell}"` : cell
@@ -131,63 +115,7 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
     try {
       const { utils, writeFile } = await import("xlsx");
 
-      const headers = isMultiAsset
-        ? [
-            "Trade #",
-            "Asset",
-            "Entry Time",
-            "Exit Time",
-            "Size",
-            "Entry Price",
-            "Exit Price",
-            "P/L",
-            "Return %",
-            "Duration (min)",
-            "Status",
-          ]
-        : [
-            "Trade #",
-            "Entry Time",
-            "Exit Time",
-            "Size",
-            "Entry Price",
-            "Exit Price",
-            "P/L",
-            "Return %",
-            "Duration (min)",
-            "Status",
-          ];
-
-      const data = rows.map((r) =>
-        isMultiAsset
-          ? [
-              r.id,
-              r.asset,
-              r.entryTime,
-              r.exitTime,
-              r.size,
-              r.entry,
-              r.exit,
-              r.plAbs,
-              r.plPct,
-              r.mins,
-              r.status,
-            ]
-          : [
-              r.id,
-              r.entryTime,
-              r.exitTime,
-              r.size,
-              r.entry,
-              r.exit,
-              r.plAbs,
-              r.plPct,
-              r.mins,
-              r.status,
-            ]
-      );
-
-      const ws = utils.aoa_to_sheet([headers, ...data]);
+      const ws = utils.aoa_to_sheet([headers, ...exportRows()]);
       const wb = utils.book_new();
       utils.book_append_sheet(wb, ws, "Trades");
 
@@ -201,7 +129,19 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
     }
   };
 
-  const colCount = isMultiAsset ? 11 : 10;
+  const statusClass = (r) =>
+    !r.closed
+      ? "bg-yellow-500/15 text-yellow-300 border border-yellow-400/20"
+      : r.green
+      ? "bg-emerald-500/15 text-emerald-300 border border-emerald-400/20"
+      : "bg-rose-500/15 text-rose-300 border border-rose-400/20";
+
+  const sideClass = (r) =>
+    r.side === "LONG"
+      ? "bg-emerald-500/10 text-emerald-300"
+      : "bg-rose-500/10 text-rose-300";
+
+  const colCount = headers.length;
 
   return (
     <div className="px-5 pb-6 h-full flex flex-col">
@@ -223,7 +163,7 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                   : "bg-rose-500/15 text-rose-300 border border-rose-400/20"
               }`}
             >
-              Total PnL: {fmt(totalPnl)}
+              Total PnL: {formatNumber(totalPnl)}
             </div>
           )}
           {rows.length > 0 && (
@@ -274,6 +214,9 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                   Asset
                 </th>
               )}
+              <th className="text-center px-4 py-3 text-xs font-semibold text-white/60 uppercase tracking-wider">
+                Side
+              </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-white/60 uppercase tracking-wider">
                 Entry Time
               </th>
@@ -331,6 +274,11 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                       </span>
                     </td>
                   )}
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold ${sideClass(r)}`}>
+                      {r.side}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-white/80 text-sm font-medium">
                       {r.entryTime.split(",")[0]}
@@ -352,13 +300,13 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-white/80 font-medium">{fmt(r.size, 4)}</span>
+                    <span className="text-white/80 font-medium">{formatNumber(r.size, 6)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-white/80 font-medium">${fmt(r.entry, 2)}</span>
+                    <span className="text-white/80 font-medium">${formatPrice(r.entry)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-white/80 font-medium">${fmt(r.exit, 2)}</span>
+                    <span className="text-white/80 font-medium">${formatPrice(r.exit)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div
@@ -373,13 +321,13 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                       ) : (
                         <ArrowDownLeft className="h-3.5 w-3.5" />
                       )}
-                      {fmt(r.plAbs, 4)}
+                      {formatNumber(r.plAbs, 2)}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className={`text-sm font-semibold ${r.green ? "text-emerald-300" : "text-rose-300"}`}>
-                      {r.green ? "+" : ""}
-                      {fmt(r.plPct, 2)}%
+                      {r.plPct > 0 ? "+" : ""}
+                      {formatNumber(r.plPct, 2)}%
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -390,11 +338,7 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span
-                      className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold ${
-                        r.status === "Closed"
-                          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-400/20"
-                          : "bg-yellow-500/15 text-yellow-300 border border-yellow-400/20"
-                      }`}
+                      className={`inline-flex items-center whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-semibold ${statusClass(r)}`}
                     >
                       {r.status}
                     </span>
@@ -438,22 +382,19 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                         {r.asset}
                       </span>
                     )}
-                    <span
-                      className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
-                        r.status === "Closed"
-                          ? "bg-emerald-500/20 text-emerald-300"
-                          : "bg-yellow-500/20 text-yellow-300"
-                      }`}
-                    >
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${sideClass(r)}`}>
+                      {r.side}
+                    </span>
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${statusClass(r)}`}>
                       {r.status}
                     </span>
                   </div>
                   <div className="space-y-0.5 min-w-0">
                     <div className="text-xs text-white/60">
-                      Entry: <span className="text-white/90 font-medium">${fmt(r.entry, 0)}</span>
+                      Entry: <span className="text-white/90 font-medium">${formatPrice(r.entry)}</span>
                     </div>
                     <div className="text-xs text-white/60">
-                      Exit: <span className="text-white/90 font-medium">${fmt(r.exit, 0)}</span>
+                      Exit: <span className="text-white/90 font-medium">${formatPrice(r.exit)}</span>
                     </div>
                   </div>
                 </div>
@@ -469,7 +410,7 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                   ) : (
                     <ArrowDownLeft className="h-3.5 w-3.5" />
                   )}
-                  <span>{fmt(r.plAbs, 0)}</span>
+                  <span>{formatNumber(r.plAbs, 2)}</span>
                 </div>
               </div>
 
@@ -482,14 +423,14 @@ export default function TradesTable({ candles = [], orders = [], totalPnl, isMul
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-white/50 uppercase tracking-wider">Return</span>
                     <span className={`text-xs font-semibold ${r.green ? "text-emerald-300" : "text-rose-300"}`}>
-                      {r.green ? "+" : ""}
-                      {fmt(r.plPct, 2)}%
+                      {r.plPct > 0 ? "+" : ""}
+                      {formatNumber(r.plPct, 2)}%
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-white/50 uppercase tracking-wider">Size</span>
-                    <span className="text-xs font-medium text-white/80">{fmt(r.size, 4)}</span>
+                    <span className="text-xs font-medium text-white/80">{formatNumber(r.size, 6)}</span>
                   </div>
 
                   <div className="flex justify-between items-center">

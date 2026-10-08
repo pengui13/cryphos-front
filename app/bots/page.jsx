@@ -7,6 +7,7 @@ import { GetBots, DeleteBots, GetSignals, GetFearAndGreed } from "../api/ApiWrap
 import { usePing } from "../providers";
 import RiskSettings from "./RiskSettings";
 import AuthScreen from "../components/AuthScreen.jsx";
+import useBacktest from "../components/useBacktest";
 
 // ============ ICONS ============
 function TrashIcon({ className }) {
@@ -61,6 +62,14 @@ function XIcon({ className }) {
   return (
     <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function FlaskIcon({ className }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 3h6m-5 0v6.5L4.6 18.4A1.8 1.8 0 006.1 21h11.8a1.8 1.8 0 001.5-2.6L14 9.5V3M7.5 15h9" />
     </svg>
   );
 }
@@ -142,6 +151,7 @@ function fngColor(value) {
 export default function Bots() {
   const router = useRouter();
   const ping = usePing();
+  const backtest = useBacktest();
 
   const [bots, setBots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -509,26 +519,39 @@ export default function Bots() {
                     </div>
                   )}
 
-                  {/* Signals Button */}
-                  <button
-                    onClick={(e) => fetchSignals(bot.id, e)}
-                    disabled={loadingSignals[bot.id]}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-2.5 text-xs font-medium text-white/70 transition hover:bg-white/10"
-                  >
-                    {loadingSignals[bot.id] ? (
-                      <>
-                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                        <span>Loading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <ZapIcon className="h-3.5 w-3.5 text-blue-400" />
-                        <span>
-                          {signalCount > 0 ? `${signalCount} Signal${signalCount !== 1 ? 's' : ''}` : 'No Signals'}
-                        </span>
-                      </>
-                    )}
-                  </button>
+                  {/* Signals + Backtest Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => fetchSignals(bot.id, e)}
+                      disabled={loadingSignals[bot.id]}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/5 py-2.5 text-xs font-medium text-white/70 transition hover:bg-white/10"
+                    >
+                      {loadingSignals[bot.id] ? (
+                        <>
+                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                          <span>Loading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ZapIcon className="h-3.5 w-3.5 text-blue-400" />
+                          <span>
+                            {signalCount > 0 ? `${signalCount} Signal${signalCount !== 1 ? 's' : ''}` : 'No Signals'}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        backtest.start(bot.id);
+                      }}
+                      title="Replay this strategy over stored history"
+                      className="flex items-center justify-center gap-2 rounded-xl bg-indigo-500/10 px-4 py-2.5 text-xs font-medium text-indigo-200 ring-1 ring-indigo-400/20 transition hover:bg-indigo-500/20"
+                    >
+                      <FlaskIcon className="h-3.5 w-3.5" />
+                      <span>Backtest</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -796,6 +819,8 @@ export default function Bots() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {backtest.elements}
     </div>
   );
 }

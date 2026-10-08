@@ -2,11 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { X, SlidersHorizontal } from "lucide-react";
+import { TIMEFRAME_LABELS } from "./backtestFormat";
 
 const THEME = {
   bg: "#0B0B12",
   border: "rgba(255,255,255,0.08)",
 };
+
+const DEFAULTS = {
+  usdt_value: 1000,
+  take_profit: 10,
+  stop_loss: 5,
+  interval: "",
+  bars: 2000,
+};
+
+const inputClass =
+  "mt-1 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/40";
 
 export default function BacktestSettingsModal({
   open,
@@ -14,18 +26,18 @@ export default function BacktestSettingsModal({
   onRun,
   defaultValues = {},
 }) {
-  const [usdt, setUsdt] = useState(defaultValues.usdt_value || 1000);
-  const [tp, setTp] = useState(defaultValues.take_profit || 10);
-  const [sl, setSl] = useState(defaultValues.stop_loss || 5);
+  const [values, setValues] = useState({ ...DEFAULTS, ...defaultValues });
+  const [error, setError] = useState("");
 
   // Reset when opened
   useEffect(() => {
     if (open) {
-      setUsdt(defaultValues.usdt_value || 1000);
-      setTp(defaultValues.take_profit || 10);
-      setSl(defaultValues.stop_loss || 5);
+      setValues({ ...DEFAULTS, ...defaultValues });
+      setError("");
     }
-  }, [open, defaultValues]);
+    // defaultValues is usually an inline object; only reset on open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // ESC close
   useEffect(() => {
@@ -37,15 +49,27 @@ export default function BacktestSettingsModal({
 
   if (!open) return null;
 
-  const submit = () => {
-    if (!Number(usdt) || usdt <= 0) return alert("Enter valid USDT value");
-    if (!Number(tp) || tp <= 0) return alert("Enter valid Take Profit (%)");
-    if (!Number(sl) || sl <= 0) return alert("Enter valid Stop Loss (%)");
+  const set = (key) => (e) => setValues((v) => ({ ...v, [key]: e.target.value }));
+
+  const submit = (e) => {
+    e?.preventDefault();
+    const usdt = Number(values.usdt_value);
+    const tp = Number(values.take_profit);
+    const sl = Number(values.stop_loss);
+    const bars = Math.round(Number(values.bars));
+
+    // The same limits the backend enforces, so errors show here first.
+    if (!(usdt > 0)) return setError("Enter a starting balance above 0.");
+    if (!(tp > 0) || tp > 1000) return setError("Take profit must be between 0 and 1000%.");
+    if (!(sl > 0) || sl > 100) return setError("Stop loss must be between 0 and 100%.");
+    if (!(bars >= 60) || bars > 5000) return setError("History must be 60–5000 candles.");
 
     onRun({
-      usdt_value: Number(usdt),
-      take_profit: Number(tp),
-      stop_loss: Number(sl),
+      usdt_value: usdt,
+      take_profit: tp,
+      stop_loss: sl,
+      interval: values.interval || null,
+      bars,
     });
   };
 
@@ -59,7 +83,8 @@ export default function BacktestSettingsModal({
 
       {/* Modal */}
       <div className="absolute inset-0 flex items-center justify-center px-4">
-        <div
+        <form
+          onSubmit={submit}
           className="relative w-full max-w-md rounded-2xl p-6 border shadow-xl"
           style={{
             background:
@@ -81,6 +106,7 @@ export default function BacktestSettingsModal({
             </div>
 
             <button
+              type="button"
               onClick={onClose}
               className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition"
             >
@@ -90,51 +116,98 @@ export default function BacktestSettingsModal({
 
           {/* Inputs */}
           <div className="space-y-4">
-            {/* USDT Value */}
             <div>
-              <label className="text-xs text-slate-300">USDT Value</label>
+              <label className="text-xs text-slate-300">Starting balance (USDT, per asset)</label>
               <input
                 type="number"
-                value={usdt}
-                onChange={(e) => setUsdt(e.target.value)}
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                min="0"
+                step="any"
+                value={values.usdt_value}
+                onChange={set("usdt_value")}
+                className={inputClass}
                 placeholder="1000"
               />
             </div>
 
-            {/* Take Profit */}
-            <div>
-              <label className="text-xs text-slate-300">Take Profit (%)</label>
-              <input
-                type="number"
-                value={tp}
-                onChange={(e) => setTp(e.target.value)}
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-                placeholder="10"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-300">Take Profit (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={values.take_profit}
+                  onChange={set("take_profit")}
+                  className={inputClass}
+                  placeholder="10"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-300">Stop Loss (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={values.stop_loss}
+                  onChange={set("stop_loss")}
+                  className={inputClass}
+                  placeholder="5"
+                />
+              </div>
             </div>
 
-            {/* Stop Loss */}
-            <div>
-              <label className="text-xs text-slate-300">Stop Loss (%)</label>
-              <input
-                type="number"
-                value={sl}
-                onChange={(e) => setSl(e.target.value)}
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-                placeholder="5"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-300">Timeframe</label>
+                <select
+                  value={values.interval || ""}
+                  onChange={set("interval")}
+                  className={`${inputClass} [&>option]:bg-[#0B0B12]`}
+                >
+                  <option value="">Bot&apos;s own</option>
+                  {Object.entries(TIMEFRAME_LABELS).map(([code, label]) => (
+                    <option key={code} value={code}>
+                      All on {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-300">History (candles)</label>
+                <input
+                  type="number"
+                  min="60"
+                  max="5000"
+                  step="1"
+                  value={values.bars}
+                  onChange={set("bars")}
+                  className={inputClass}
+                  placeholder="2000"
+                />
+              </div>
             </div>
+
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              &quot;Bot&apos;s own&quot; checks every indicator on the timeframes
+              you configured, exactly as the live bot does. History counts candles
+              of the finest timeframe used.
+            </p>
+
+            {error && (
+              <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+                {error}
+              </p>
+            )}
           </div>
 
           {/* Run button */}
           <button
-            onClick={submit}
+            type="submit"
             className="mt-6 w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition ring-1 ring-indigo-400/30"
           >
             Run Backtest
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
