@@ -54,7 +54,7 @@ const ROLES = [
     location: "Remote · Europe preferred",
     type: "Full-time",
     icon: Code2,
-    summary: "Own the infrastructure that powers thousands of live trading bots.",
+    summary: "Own the infrastructure that runs every live trading bot on the platform.",
     description: `We're building the engine room of Cryphos — the systems that execute trades, manage WebSocket feeds from 10+ exchanges, process signals in real-time, and keep everything running without downtime. You'll work on our Django/DRF core, Celery task queues, Redis pub-sub pipelines, and PostgreSQL schemas that handle millions of rows of market data.\n\nThis isn't a ticket-factory job. You'll make architectural decisions that matter, ship fast, and have direct impact on the product from day one.`,
     requirements: [
       "3+ years with Python and Django in production",
@@ -611,7 +611,7 @@ export default function CareersPage() {
                 <Zap className="h-3 w-3" />
                 We're building something real
               </div>
-              <h1 className="bg-gradient-to-b from-white via-white to-white/40 bg-clip-text text-6xl sm:text-7xl lg:text-8xl font-semibold leading-[1.0] tracking-tight text-transparent mb-6">
+              <h1 className="text-display text-4xl sm:text-6xl lg:text-7xl font-semibold leading-[1.02] tracking-tight mb-6">
                 Come build<br />the edge.
               </h1>
               <p className="text-base sm:text-lg text-white/45 leading-relaxed max-w-lg mb-8">

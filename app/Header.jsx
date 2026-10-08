@@ -37,7 +37,7 @@ function NavItem({ href, label, icon: Icon, active, onClick }) {
       {active && (
         <motion.div
           layoutId="activeTab"
-          className="absolute inset-0 -z-10 rounded-xl bg-white/10"
+          className="absolute inset-0 -z-10 rounded-xl border border-white/[0.09] bg-white/[0.09] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"
           transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
         />
       )}
@@ -103,6 +103,16 @@ export default function Header({ ping }) {
     { href: "/settings", label: t("nav.settings"), icon: SettingsIcon },
   ];
 
+  // The bar is weightless over the hero and gains a hairline + blur once the
+  // page moves under it, so the chrome never competes with the headline.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const handleLogout = () => {
     document.cookie = "access=; path=/; max-age=0;";
     document.cookie = "refresh=; path=/; max-age=0;";
@@ -110,7 +120,13 @@ export default function Header({ ping }) {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
+    <header
+      className={`sticky top-0 z-50 transition-[background-color,border-color,box-shadow] duration-500 ${
+        scrolled || mobileOpen
+          ? "border-b border-white/[0.08] bg-[#08080b]/80 shadow-[0_1px_0_0_rgba(255,255,255,0.04),0_8px_32px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl"
+          : "border-b border-transparent bg-transparent"
+      }`}
+    >
       <div className="mx-auto h-16 max-w-7xl px-4 sm:px-6">
         {/* 3-column grid prevents overlap: logo | nav | actions */}
         <div className="grid h-full grid-cols-[auto,1fr,auto] items-center gap-3">
@@ -124,7 +140,7 @@ export default function Header({ ping }) {
               className="rounded-lg transition-transform group-hover:scale-105"
               priority
             />
-            <span className="text-lg font-bold tracking-tight text-white">Cryphos</span>
+            <span className="text-lg font-semibold tracking-tight text-white">Cryphos</span>
           </Link>
 
           {/* Desktop Nav (scrolls instead of colliding) */}
@@ -132,9 +148,7 @@ export default function Header({ ping }) {
             <div
               className={[
                 "flex min-w-0 items-center gap-1",
-                "overflow-x-auto px-1",
-                // hide scrollbar (no plugin needed)
-                "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+                "no-scrollbar overflow-x-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] p-1",
               ].join(" ")}
             >
               {nav.map((n) => (
@@ -167,18 +181,16 @@ export default function Header({ ping }) {
                   href="/login"
                   className="rounded-xl px-3 lg:px-4 py-2 text-sm font-medium text-white/60 transition hover:text-white"
                 >
-                  <span className="hidden lg:inline">{t("auth.login")}</span>
-                  <span className="lg:hidden">Login</span>
+                  {t("auth.login")}
                 </Link>
 
                 <Link href="/register">
                   <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.98 }}
-                    className="rounded-xl bg-white px-4 lg:px-5 py-2 text-sm font-semibold text-black transition hover:bg-white/90 whitespace-nowrap"
+                    className="btn-primary rounded-xl px-4 lg:px-5 py-2 text-sm font-semibold whitespace-nowrap"
                   >
-                    <span className="hidden lg:inline">{t("auth.signup")}</span>
-                    <span className="lg:hidden">Sign up</span>
+                    {t("auth.signup")}
                   </motion.button>
                 </Link>
               </>
@@ -202,7 +214,6 @@ export default function Header({ ping }) {
                 >
                   <LogOut className="h-4 w-4" />
                   <span className="hidden lg:inline">{t("auth.logout")}</span>
-                  <span className="lg:hidden">Logout</span>
                 </motion.button>
               </>
             ) : (

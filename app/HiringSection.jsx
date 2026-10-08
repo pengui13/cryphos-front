@@ -376,85 +376,99 @@ export default function HiringSection() {
   const beamAngleRef = useRef(-Math.PI / 2);
 
   return (
-    <section className="py-16 sm:py-24 overflow-hidden">
-      <div
-        className="relative rounded-2xl border border-white/[0.08] overflow-hidden bg-[#030208]"
-        style={{ aspectRatio: `${W}/${H}` }}
-      >
-        {/* Canvas layer */}
-        <div className="absolute inset-0">
-          <LighthouseCanvas beamAngleRef={beamAngleRef} />
-        </div>
+    <section className="py-16 sm:py-24">
+      {/* Below `lg` the copy stacks above the lighthouse. Overlaying it on a
+          fixed 900:460 box — which is what this used to do at every width —
+          meant the card shrank with the viewport while the text did not, and
+          the CTA was clipped off the bottom edge on phones and tablets. */}
+      <div className="surface relative overflow-hidden rounded-2xl bg-[#030208] lg:aspect-[900/460]">
 
-        {/* DOM candidate cards */}
-        <div className="absolute inset-0">
-          {CANDIDATES.map((c) => (
-            <CandidateCard key={c.initials} {...c} beamAngleRef={beamAngleRef} />
-          ))}
-        </div>
-
-        {/* Left text overlay */}
-        <div className="absolute inset-0 z-30 pointer-events-none">
-          {/* Left gradient fade so text is legible */}
+        {/* Copy */}
+        <div className="relative z-30 px-6 py-10 sm:px-10 sm:py-12 lg:absolute lg:inset-0 lg:flex lg:items-center lg:p-0 lg:pl-14">
+          {/* The legibility scrim is only needed where the art sits behind. */}
           <div
-            className="absolute inset-0"
+            className="pointer-events-none absolute inset-0 hidden lg:block"
             style={{
-              background: "linear-gradient(to right, rgba(3,2,8,0.92) 0%, rgba(3,2,8,0.7) 28%, transparent 55%)",
+              background:
+                "linear-gradient(to right, rgba(3,2,8,0.94) 0%, rgba(3,2,8,0.72) 30%, transparent 58%)",
             }}
           />
-          <div className="relative h-full flex flex-col justify-center pl-8 sm:pl-12 lg:pl-14 pointer-events-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              viewport={{ once: true }}
-              className="max-w-[300px]"
-            >
-              <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/[0.1] px-3.5 py-1.5 text-xs text-violet-300/80 mb-6">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            viewport={{ once: true }}
+            className="relative max-w-md lg:max-w-[320px]"
+          >
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/[0.1] px-3.5 py-1.5 text-xs text-violet-300/80">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-400" />
+              </span>
+              Now hiring · 4 roles
+            </div>
+
+            <h2 className="text-display mb-3 text-3xl font-semibold leading-[1.12] tracking-tight sm:text-4xl">
+              We&rsquo;re scanning
+              <br />
+              for the best.
+            </h2>
+
+            <p className="mb-6 text-sm leading-relaxed text-white/45">
+              Backend, Rust, quant, growth. Small team, big infra, equity from day one.
+            </p>
+
+            <div className="mb-7 flex flex-wrap gap-1.5">
+              {[
+                { label: "Backend", color: "#7c3aed" },
+                { label: "Rust",    color: "#0891b2" },
+                { label: "Quant",   color: "#be185d" },
+                { label: "Growth",  color: "#059669" },
+              ].map(({ label, color }) => (
+                <span
+                  key={label}
+                  className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                  style={{
+                    background: color + "18",
+                    border: `1px solid ${color}35`,
+                    color: color + "cc",
+                  }}
+                >
+                  {label}
                 </span>
-                Now hiring · 4 roles
-              </div>
+              ))}
+            </div>
 
-              <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-3xl sm:text-4xl font-semibold leading-[1.12] tracking-tight text-transparent mb-3">
-                We're scanning<br />for the best.
-              </h2>
+            <Link href="/careers" className="inline-block">
+              <button className="btn-primary group flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold">
+                See open roles
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </button>
+            </Link>
+          </motion.div>
+        </div>
 
-              <p className="text-sm text-white/40 leading-relaxed mb-6">
-                Backend, Rust, quant, growth.<br />Small team. Big infra. Equity day one.
-              </p>
-
-              <div className="flex flex-wrap gap-1.5 mb-7">
-                {[
-                  { label: "Backend", color: "#7c3aed" },
-                  { label: "Rust",    color: "#0891b2" },
-                  { label: "Quant",   color: "#be185d" },
-                  { label: "Growth",  color: "#059669" },
-                ].map(({ label, color }) => (
-                  <span
-                    key={label}
-                    className="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{
-                      background: color + "18",
-                      border: `1px solid ${color}35`,
-                      color: color + "cc",
-                    }}
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
-
-              <Link href="/careers">
-                <button className="group flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-white/90 transition-all">
-                  See open roles
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </button>
-              </Link>
-            </motion.div>
+        {/* Lighthouse art — in flow on small screens, a full-bleed backdrop on lg */}
+        <div
+          className="relative w-full lg:absolute lg:inset-0"
+          style={{ aspectRatio: `${W}/${H}` }}
+        >
+          <div className="absolute inset-0">
+            <LighthouseCanvas beamAngleRef={beamAngleRef} />
           </div>
+
+          <div className="absolute inset-0">
+            {CANDIDATES.map((c) => (
+              <CandidateCard key={c.initials} {...c} beamAngleRef={beamAngleRef} />
+            ))}
+          </div>
+
+          {/* Softens the seam where the art meets the stacked copy above it. */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-24 lg:hidden"
+            style={{ background: "linear-gradient(to bottom, #030208, transparent)" }}
+          />
         </div>
       </div>
     </section>

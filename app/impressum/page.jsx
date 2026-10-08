@@ -20,7 +20,7 @@ export default function Impressum() {
       {/* Hero Section */}
       <div className="max-w-6xl mx-auto px-6 pt-20 pb-12">
         <div className="mb-20">
-          <h1 className="text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-white">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4 text-white">
             Legal Notice
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl">

@@ -59,7 +59,7 @@ function PricingCard({ tier, isPopular = false, delay = 0 }) {
               <div className="text-4xl font-bold">Free</div>
             ) : (
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent">
+                <span className="tnum text-display text-5xl font-bold">
                   ${tier.price}
                 </span>
                 <span className="text-white/50">/month</span>
@@ -288,7 +288,7 @@ export default function Pricing() {
               <span className="text-sm text-white/70">Simple, transparent pricing</span>
             </div>
             
-            <h1 className="mx-auto max-w-4xl bg-gradient-to-br from-white via-white to-white/60 bg-clip-text text-6xl font-semibold leading-[1.1] tracking-tight text-transparent sm:text-7xl lg:text-8xl">
+            <h1 className="mx-auto max-w-4xl text-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl">
               Choose your plan
             </h1>
             
@@ -350,7 +350,7 @@ export default function Pricing() {
             viewport={{ once: true }}
             className="mb-16 text-center"
           >
-            <h2 className="bg-gradient-to-br from-white to-white/60 bg-clip-text text-5xl font-semibold leading-tight text-transparent">
+            <h2 className="text-display text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
               Compare features
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-white/60">
@@ -432,7 +432,7 @@ export default function Pricing() {
             viewport={{ once: true }}
             className="mb-16 text-center"
           >
-            <h2 className="bg-gradient-to-br from-white to-white/60 bg-clip-text text-5xl font-semibold leading-tight text-transparent">
+            <h2 className="text-display text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
               Questions? We've got answers.
             </h2>
           </motion.div>
@@ -453,11 +453,11 @@ export default function Pricing() {
             viewport={{ once: true }}
             className="relative overflow-hidden rounded-[32px] border border-white/[0.08] bg-gradient-to-br from-white/[0.05] to-transparent p-16 text-center backdrop-blur-2xl"
           >
-            <h2 className="mb-4 bg-gradient-to-br from-white to-white/60 bg-clip-text text-4xl font-semibold text-transparent sm:text-5xl">
+            <h2 className="mb-4 text-display text-3xl font-semibold sm:text-4xl lg:text-5xl">
               Ready to start trading smarter?
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-white/60">
-              Join thousands of traders using Cryphos. Start your free trial today.
+              Build a strategy, backtest it against real history, and get the signals in Telegram.
             </p>
             <Link href="/register">
               <motion.button

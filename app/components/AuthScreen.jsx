@@ -10,7 +10,7 @@ export default function AuthScreen(){
         <div className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/20 blur-[120px]" />
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative text-center">
           <Image src="/padlock.png" alt="Locked" width={140} height={140} className="mx-auto mb-6 drop-shadow-[0_0_40px_rgba(168,85,247,0.4)]" />
-          <h1 className="mb-3 bg-gradient-to-br from-white to-white/60 bg-clip-text text-3xl sm:text-4xl font-bold tracking-tight text-transparent">
+          <h1 className="mb-3 text-display text-3xl sm:text-4xl font-bold tracking-tight">
             {t("bots.authRequired")}
           </h1>
           <p className="mx-auto max-w-md text-white/60 text-sm sm:text-base">{t("bots.loginToAccess")}</p>

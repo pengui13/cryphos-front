@@ -13,13 +13,16 @@ const IntervalsMapping = {
 const cookies = new Cookies();
 
 
-export const HOST = 'https://cryphos.com'
+// Overridable so the app can be pointed at a local or staging backend without
+// editing source. Falls back to production, which is what the build shipped
+// before these were configurable.
+export const HOST = process.env.NEXT_PUBLIC_SITE_HOST || 'https://cryphos.com';
 export const BASE_FRONT = `${HOST}/`;
 
-export const API_HOST = 'https://api.cryphos.com'
+export const API_HOST = process.env.NEXT_PUBLIC_API_HOST || 'https://api.cryphos.com';
 export const BASE_URL = `${API_HOST}/api/`;
 export const MEDIA_URL = `${API_HOST}/`;
-export const WEBSOCKET_URL = `${API_HOST}/ws/`;
+export const WEBSOCKET_URL = `${API_HOST.replace(/^http/, "ws")}/api/ws/`;
 
 
 function getCookieValue(name) {
@@ -224,7 +227,8 @@ export async function GetMyBots(setMyBots) {
 }
 export async function GetPing(setPing) {
   apiRequest({
-    endpoint: `${BASE_URL}auth/ping/`,
+    // auth/ping/ is AllowAny (health check); auth/me/ actually requires a valid token.
+    endpoint: `${BASE_URL}auth/me/`,
     onSuccess: (jsonData) => setPing(true),
     onError: (error) => setPing(false),
   });
@@ -417,7 +421,7 @@ export function GetFundingRates(onSuccess, onError) {
 }
 
 export function subscribeLiquidations(onMessage, onError, onClose) {
-  const ws = new WebSocket(`${BASE_URL}ws/liquidations/`);
+  const ws = new WebSocket(`${WEBSOCKET_URL}liquidations/`);
 
   ws.onopen = () => {
     console.log("Liquidations WebSocket connected");
@@ -443,7 +447,7 @@ export function subscribeLiquidations(onMessage, onError, onClose) {
   };
 
   return () => {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
       ws.close();
     }
   };

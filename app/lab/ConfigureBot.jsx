@@ -8,30 +8,46 @@ import SupportResistanceSettings from "./SupportResistanceSettings";
 import EmaSettings from "./EmaSettings";
 import MaSettings from "./MaSettings";
 import FibonacciSettings from "./FibonacciSettings";
+import MacdSettings from "./MacdSettings";
+import VolumeSettings from "./VolumeSettings";
+import SmartMoneySettings from "./SmartMoneySettings";
+import FGSettings from "./FGSettings";
 import { useLang } from "../LanguageContext";
 
 /**
- * A clean, self-contained card for indicators that are ready on the FE
- * but not yet wired on the BE. No live toggle, no blur — just a muted
- * header with a "Soon" pill.
+ * The settings panels were written against their own UI vocabulary, which
+ * does not match the API field names. Rather than rewrite each panel, the
+ * translation lives here, in one place, next to the payload it produces.
  */
-function ComingSoonCard({ title, subtitle }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.015] p-6">
-      <div className="min-w-0">
-        <h3 className="truncate text-lg font-semibold text-white/45">{title}</h3>
-        <p className="mt-1 truncate text-sm text-white/30">{subtitle}</p>
-      </div>
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-300/90">
-        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-          <circle cx="12" cy="12" r="9" />
-          <path strokeLinecap="round" d="M12 7v5l3 2" />
-        </svg>
-        Soon
-      </span>
-    </div>
-  );
-}
+const TO_API = {
+  macd: (s) => ({
+    intervals: s.intervals,
+    fast_period: s.fast,
+    slow_period: s.slow,
+    signal_period: s.signal,
+  }),
+  volume: (s) => ({
+    intervals: s.intervals,
+    period: s.ma_period,
+    multiplier: s.spike_threshold,
+    min_body_pct: 0.1,
+  }),
+  smc: (s) => {
+    // "Sensitivity" in the panel is how much structure has to form before a
+    // break counts, which the API expresses as a swing lookback.
+    const bySensitivity = { low: 40, medium: 20, high: 10 };
+    return {
+      intervals: s.intervals,
+      swing_lookback: bySensitivity[s.sensitivity] ?? 20,
+      swing_strength: s.sensitivity === "high" ? 1 : 2,
+      require_fvg: Array.isArray(s.concepts) && s.concepts.includes("fvg"),
+      fvg_min_pct: 0.05,
+    };
+  },
+  // The panel has no timeframe control because the index is one global
+  // daily number, which is exactly how the API models it.
+  fng: (s) => ({ mode: "contrarian", min: s.lower, max: s.upper }),
+};
 
 export default function ConfigureBot({ step, setStep, botSettings, setBotSettings, onCreateBot }) {
   const { t } = useLang();
@@ -49,6 +65,14 @@ export default function ConfigureBot({ step, setStep, botSettings, setBotSetting
   const [maSettings, setMaSettings] = useState(botSettings?.ma ?? {});
   const [fibEnabled, setFibEnabled] = useState(!!botSettings?.fib);
   const [fibSettings, setFibSettings] = useState(botSettings?.fib ?? {});
+  const [macdEnabled, setMacdEnabled] = useState(!!botSettings?.macd);
+  const [macdSettings, setMacdSettings] = useState(botSettings?.macd ?? {});
+  const [volumeEnabled, setVolumeEnabled] = useState(!!botSettings?.volume);
+  const [volumeSettings, setVolumeSettings] = useState(botSettings?.volume ?? {});
+  const [smcEnabled, setSmcEnabled] = useState(!!botSettings?.smc);
+  const [smcSettings, setSmcSettings] = useState(botSettings?.smc ?? {});
+  const [fngEnabled, setFngEnabled] = useState(!!botSettings?.fng);
+  const [fngSettings, setFngSettings] = useState(botSettings?.fng ?? {});
 
   useEffect(() => {
     const s = { ...botSettings };
@@ -58,18 +82,23 @@ export default function ConfigureBot({ step, setStep, botSettings, setBotSetting
     if (emaEnabled) s.ema = emaSettings; else delete s.ema;
     if (maEnabled) s.ma = maSettings; else delete s.ma;
     if (fibEnabled) s.fib = fibSettings; else delete s.fib;
-    // Soon indicators are never persisted.
-    delete s.smc;
-    delete s.macd;
-    delete s.volume;
+    if (macdEnabled) s.macd = TO_API.macd(macdSettings); else delete s.macd;
+    if (volumeEnabled) s.volume = TO_API.volume(volumeSettings); else delete s.volume;
+    if (smcEnabled) s.smc = TO_API.smc(smcSettings); else delete s.smc;
+    if (fngEnabled) s.fng = TO_API.fng(fngSettings); else delete s.fng;
     setBotSettings(s);
   }, [
     rsiEnabled, rsiSettings, bbEnabled, bbSettings, srEnabled, srSettings,
     emaEnabled, emaSettings, maEnabled, maSettings, fibEnabled, fibSettings,
+    macdEnabled, macdSettings, volumeEnabled, volumeSettings,
+    smcEnabled, smcSettings, fngEnabled, fngSettings,
     setBotSettings,
   ]);
 
-  const enabledCount = [rsiEnabled, bbEnabled, srEnabled, emaEnabled, maEnabled, fibEnabled].filter(Boolean).length;
+  const enabledCount = [
+    rsiEnabled, bbEnabled, srEnabled, emaEnabled, maEnabled, fibEnabled,
+    macdEnabled, volumeEnabled, smcEnabled, fngEnabled,
+  ].filter(Boolean).length;
 
   const handleCreateBot = async () => {
     if (enabledCount === 0) { alert(t("bots.atLeastOneIndicator")); return; }
@@ -94,7 +123,9 @@ export default function ConfigureBot({ step, setStep, botSettings, setBotSetting
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <RsiSettings enabled={rsiEnabled} setEnabled={setRsiEnabled} settings={rsiSettings} setSettings={setRsiSettings} />
         </div>
-        <ComingSoonCard title={t("indicators.macd.name")} subtitle={t("indicators.macd.desc")} />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <MacdSettings enabled={macdEnabled} setEnabled={setMacdEnabled} settings={macdSettings} setSettings={setMacdSettings} />
+        </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <MaSettings enabled={maEnabled} setEnabled={setMaEnabled} settings={maSettings} setSettings={setMaSettings} />
         </div>
@@ -107,10 +138,17 @@ export default function ConfigureBot({ step, setStep, botSettings, setBotSetting
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <FibonacciSettings enabled={fibEnabled} setEnabled={setFibEnabled} settings={fibSettings} setSettings={setFibSettings} />
         </div>
-        <ComingSoonCard title={t("indicators.volume.name")} subtitle={t("indicators.volume.desc")} />
-        <ComingSoonCard title={t("indicators.smc.name")} subtitle={t("indicators.smc.desc")} />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <VolumeSettings enabled={volumeEnabled} setEnabled={setVolumeEnabled} settings={volumeSettings} setSettings={setVolumeSettings} />
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <SmartMoneySettings enabled={smcEnabled} setEnabled={setSmcEnabled} settings={smcSettings} setSettings={setSmcSettings} />
+        </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <SupportResistanceSettings enabled={srEnabled} setEnabled={setSrEnabled} settings={srSettings} setSettings={setSrSettings} />
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <FGSettings enabled={fngEnabled} setEnabled={setFngEnabled} settings={fngSettings} setSettings={setFngSettings} />
         </div>
       </div>
 

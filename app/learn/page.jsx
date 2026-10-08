@@ -119,14 +119,14 @@ export default function LearnMore() {
             </span>
           </div>
 
-          <h1 className="text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.08] mb-6">
             A New Standard in
             <span className="block bg-gradient-to-r from-purple-200 via-purple-300 to-pink-300 bg-clip-text text-transparent">
               Technical Analysis & Backtesting
             </span>
           </h1>
 
-          <p className="text-xl text-purple-200/70 max-w-2xl mx-auto mb-8">
+          <p className="text-base sm:text-lg text-purple-200/70 max-w-2xl mx-auto mb-8">
             Explore markets with clarity and precision. Cryphos delivers next-gen tools for structure detection,
             volatility mapping, and strategy validation.
           </p>
@@ -145,7 +145,7 @@ export default function LearnMore() {
       {/* ================= FEATURES ================= */}
       <div className="max-w-7xl mx-auto px-6 py-32">
         <div className="text-center mb-20">
-          <h2 className="text-5xl font-bold text-white mb-6">Tools Built for Modern Analysts</h2>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">Tools Built for Modern Analysts</h2>
           <p className="text-xl text-purple-200/70 max-w-2xl mx-auto">
             A unified toolkit for traders, quant researchers, and data-driven investors.
           </p>
@@ -216,7 +216,7 @@ export default function LearnMore() {
 
         <div className="relative">
           <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-white mb-6">Your Workflow. Simplified.</h2>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">Your Workflow. Simplified.</h2>
             <p className="text-xl text-purple-200/70 max-w-2xl mx-auto">
               Everything you need — from asset selection to full strategy validation.
             </p>
@@ -264,7 +264,7 @@ export default function LearnMore() {
       {/* ================= INDICATORS SECTION ================= */}
       <div className="max-w-7xl mx-auto px-6 py-32">
         <div className="text-center mb-20">
-          <h2 className="text-5xl font-bold text-white mb-6">Core Indicators</h2>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">Core Indicators</h2>
           <p className="text-xl text-purple-200/70 max-w-2xl mx-auto">
             Momentum, volatility, trend, and range — all measured with precision.
           </p>

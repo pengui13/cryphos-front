@@ -279,7 +279,7 @@ export default function BotsFactory() {
 
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-center px-4 sm:px-6 py-8 sm:py-16">
         <motion.header initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 sm:mb-12 w-full text-center">
-          <h1 className="mb-3 bg-gradient-to-br from-white to-white/60 bg-clip-text text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-transparent">
+          <h1 className="mb-3 text-display text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
             {titles[step]}
           </h1>
           <p className="text-sm sm:text-lg text-white/60">{t("bots.buildStrategy")}</p>

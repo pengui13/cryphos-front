@@ -104,7 +104,7 @@ function XIcon({ className }) {
 
 function Zap({ className }) {
   return (
-    <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 0 24" stroke="currentColor" strokeWidth={1.5}>
+    <svg className={className || "h-5 w-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
     </svg>
   );
@@ -313,6 +313,7 @@ export default function Analytics() {
   const [liqStats, setLiqStats] = useState({ long_usd: 0, short_usd: 0, long_count: 0, short_count: 0 });
   const [connected, setConnected] = useState(false);
   const [newestId, setNewestId] = useState(null);
+  const seenLiqIdsRef = useRef(new Set());
 
   const [tick, setTick] = useState(0);
 
@@ -354,6 +355,13 @@ export default function Analytics() {
 
   const onLiq = useCallback((data) => {
     const liqId = `${data.ts || Date.now()}-${data.symbol || "unknown"}-${data.usd || 0}`;
+
+    // Every (re)connect replays the server's recent backlog; drop what we already have
+    // so rows and the long/short totals aren't counted twice.
+    const seen = seenLiqIdsRef.current;
+    if (seen.has(liqId)) return;
+    seen.add(liqId);
+    if (seen.size > 500) seen.delete(seen.values().next().value);
 
     setLiquidations((prev) => [{ ...data, id: liqId }, ...prev].slice(0, 50));
     setLiqStats((prev) => ({

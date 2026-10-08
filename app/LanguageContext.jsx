@@ -29,6 +29,13 @@ export function LanguageProvider({ children }) {
     }
   }, []);
 
+  // Keep the document language in sync with the UI language. The root layout
+  // hard-codes lang="en", which mislabels every non-English page for screen
+  // readers, translation tooling and search engines.
+  useEffect(() => {
+    if (typeof document !== "undefined") document.documentElement.lang = lang;
+  }, [lang]);
+
   function setLang(code) {
     if (!translations[code]) return;
     setLangState(code);

@@ -2,165 +2,377 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Design tokens
+   Kept in sync with tailwind.config.js — the brand is a single violet.
+   ========================================================================== */
+
 :root {
   --font-site: var(--font-space);
-  --bkg: black;
-  --bkg-surface: #131823;
-  --bkg-elevated: #1A1F2E;
-  --bkg-hover: #252B3A;
-  
-  /* === SIGNATURE OWL ORANGE === */
-  --primary: #6a2e8e;
-  --primary-hover: #FF8A65;
-  --primary-dark: #E64A19;
-  
-  /* === TRADING STATUS COLORS === */
-  --success: #00E676;
-  --success-dark: #00C853;
-  --danger: #FF1744;
-  --danger-dark: #D50000;
-  
-  /* === PREMIUM & ACCENTS === */
-  --gold: #FFD700;
-  --gold-dark: #FFA000;
-  --info: #00D4FF;
-  --info-dark: #0091EA;
-  
-  /* === TEXT HIERARCHY === */
-  --text-primary: #FFFFFF;
-  --text-secondary: #E2E8F0;
-  --text-muted: #94A3B8;
-  --text-disabled: #64748B;
-  
-  /* === SPECIAL EFFECTS === */
-  --shimmer: #252B3A;
-  --graphite: #2A3441;
+
+  /* Surfaces, from deepest to most elevated */
+  --bkg: #08080b;
+  --bkg-surface: #0f0f14;
+  --bkg-elevated: #15151c;
+  --bkg-hover: #1d1d26;
+
+  /* Brand violet */
+  --primary: #8b5cf6;
+  --primary-hover: #a78bfa;
+  --primary-dark: #6d28d9;
+  --primary-rgb: 139, 92, 246;
+
+  /* Trading status */
+  --success: #34d399;
+  --success-dark: #059669;
+  --danger: #f87171;
+  --danger-dark: #dc2626;
+
+  /* Accents */
+  --gold: #e8c468;
+  --gold-dark: #c79b3b;
+  --info: #38bdf8;
+  --info-dark: #0284c7;
+
+  /* Text hierarchy */
+  --text-primary: #ffffff;
+  --text-secondary: #e4e4e7;
+  --text-muted: #a1a1aa;
+  --text-disabled: #71717a;
+
+  /* Hairlines and effects */
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
+  --shimmer: #1d1d26;
+  --graphite: #26262f;
+
+  /* Motion — one easing curve for the whole product */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@theme {
-  --color-primary: #6a2e8e;
-  --color-bkg: black;
-  --color-log-bkg: #310447;
-
-  --color-bkg-surface: #131823;
-  /* Add all your custom colors here */
+html {
+  /* framer-motion measures scroll offsets against the scroll container — the
+     root element here — and warns that a static one measures unreliably. */
+  position: relative;
+  scroll-behavior: smooth;
+  background: var(--bkg);
 }
 
+body {
+  background: var(--bkg);
+  color: var(--text-primary);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, Segoe UI,
+    Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  /* Slightly tighter tracking reads as more considered at body sizes. */
+  letter-spacing: -0.006em;
+}
 
-  body {
-    background: #0f1115;
-    color: var(--text-primary);
-    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, Segoe UI,
-      Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    color: var(--text-primary);
-    font-family: var(--font-space), var(--font-inter), -apple-system,
-      BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    letter-spacing: -0.02em;
-  }
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-family: var(--font-space), var(--font-inter), -apple-system,
+    BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+}
+
+/* Tabular figures everywhere numbers change in place — prices, P&L, counters. */
+.tnum,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ==========================================================================
+   Surface primitives
+   ========================================================================== */
+
+/* The standard card: a hairline, a barely-there fill, and an inner top
+   highlight that makes the edge catch light like glass. */
+.surface {
+  border: 1px solid var(--hairline);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.012) 100%);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.surface-hover {
+  transition:
+    border-color 300ms var(--ease-out-expo),
+    box-shadow 300ms var(--ease-out-expo),
+    transform 300ms var(--ease-out-expo);
+}
+
+.surface-hover:hover {
+  border-color: var(--hairline-strong);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
+    0 16px 48px rgba(0, 0, 0, 0.55),
+    0 0 40px rgba(var(--primary-rgb), 0.07);
+  transform: translateY(-2px);
+}
+
+/* A gradient hairline that only appears on hover — the detail that separates
+   a premium card from a plain bordered box. */
+.surface-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    140deg,
+    rgba(var(--primary-rgb), 0.5),
+    transparent 40%,
+    transparent 60%,
+    rgba(255, 255, 255, 0.18)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out-expo);
+  pointer-events: none;
+}
+
+.surface-ring:hover::after {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Type treatments
+   ========================================================================== */
+
+/* Headline gradient. Stops sit high so multi-line headings stay legible —
+   the old `to-white/40` faded whole trailing lines to near-invisible. */
+.text-display {
+  background-image: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #ffffff 45%,
+    rgba(255, 255, 255, 0.72) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-brand {
+  background-image: linear-gradient(
+    100deg,
+    var(--primary-hover) 0%,
+    #d8b4fe 50%,
+    var(--info) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+  color: #08080b;
+  transition:
+    transform 200ms var(--ease-out-expo),
+    box-shadow 300ms var(--ease-out-expo);
+  box-shadow: 0 6px 24px -8px rgba(255, 255, 255, 0.5);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px -8px rgba(255, 255, 255, 0.55);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* A light sweep across the button on hover. */
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent
+  );
+  transform: translateX(-160%) skewX(-16deg);
+  pointer-events: none;
+}
+
+.btn-primary:hover::before {
+  animation: sheen-sweep 900ms var(--ease-out-expo);
+}
+
+.btn-ghost {
+  border: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  transition:
+    border-color 250ms var(--ease-out-expo),
+    background-color 250ms var(--ease-out-expo),
+    transform 200ms var(--ease-out-expo);
+}
+
+.btn-ghost:hover {
+  border-color: var(--hairline-strong);
+  background: rgba(255, 255, 255, 0.075);
+  transform: translateY(-1px);
+}
+
+@keyframes sheen-sweep {
+  0% { transform: translateX(-160%) skewX(-16deg); }
+  100% { transform: translateX(320%) skewX(-16deg); }
+}
+
+/* ==========================================================================
+   Legacy helpers kept for existing markup
+   ========================================================================== */
+
 .bg-primary-gradient {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-hover) 100%);
 }
 
 .bg-success-gradient {
-  background: linear-gradient(135deg, var(--success) 0%, #26C6DA 100%);
+  background: linear-gradient(135deg, var(--success-dark) 0%, var(--success) 100%);
 }
 
 .bg-danger-gradient {
-  background: linear-gradient(135deg, var(--danger) 0%, #FF6B9D 100%);
+  background: linear-gradient(135deg, var(--danger-dark) 0%, var(--danger) 100%);
 }
 
 .bg-background-gradient {
   background: linear-gradient(135deg, var(--bkg) 0%, var(--bkg-surface) 50%, var(--bkg-elevated) 100%);
 }
 
-/* Glow effects */
-.glow-orange {
-  box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
-}
+.glow-primary { box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3); }
+.glow-green   { box-shadow: 0 0 20px rgba(52, 211, 153, 0.3); }
+.glow-red     { box-shadow: 0 0 20px rgba(248, 113, 113, 0.3); }
 
-.glow-green {
-  box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
-}
-
-.glow-red {
-  box-shadow: 0 0 20px rgba(255, 23, 68, 0.3);
-}
-
-/* Card shadows */
 .shadow-card {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 .shadow-card-hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 107, 53, 0.1);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(var(--primary-rgb), 0.1);
 }
 
-/* Animations */
 @keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(255, 107, 53, 0.6), 0 0 60px rgba(255, 107, 53, 0.2);
-  }
+  0%, 100% { box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3); }
+  50%      { box-shadow: 0 0 40px rgba(var(--primary-rgb), 0.6), 0 0 60px rgba(var(--primary-rgb), 0.2); }
 }
 
 @keyframes profit-pulse {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(0, 230, 118, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(0, 230, 118, 0.6);
-  }
+  0%, 100% { box-shadow: 0 0 15px rgba(52, 211, 153, 0.3); }
+  50%      { box-shadow: 0 0 30px rgba(52, 211, 153, 0.6); }
 }
 
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+.animate-pulse-glow   { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-profit-pulse { animation: profit-pulse 1.5s ease-in-out infinite; }
+.animate-shimmer      { animation: shimmer 3s ease-in-out infinite; }
+
+/* ==========================================================================
+   Focus, selection, scrollbars
+   ========================================================================== */
+
+/* The previous rules here used `ring`/`ring-color`/`ring-opacity`, which are
+   Tailwind utility names and not real CSS properties — they removed the focus
+   outline and replaced it with nothing. Keyboard users had no focus indicator
+   anywhere in the app. */
+:focus-visible {
+  outline: 2px solid rgba(var(--primary-rgb), 0.85);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
-.animate-profit-pulse {
-  animation: profit-pulse 1.5s ease-in-out infinite;
-}
-
-.animate-shimmer {
-  animation: shimmer 3s ease-in-out infinite;
-}
-
-/* Focus states */
-input:focus, 
-button:focus, 
-textarea:focus, 
-select:focus {
+:focus:not(:focus-visible) {
   outline: none;
-  ring: 2px;
-  ring-color: var(--primary);
-  ring-opacity: 0.5;
 }
 
-
-
-
-
-/* Selection styling */
 ::selection {
-  background: var(--primary);
-  color: white;
+  background: rgba(var(--primary-rgb), 0.35);
+  color: #ffffff;
 }
-button{
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: content-box;
+}
+
+/* Utility for the horizontal rails that should not show a scrollbar at all. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+button {
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

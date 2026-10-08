@@ -3,18 +3,35 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useAnimationFrame } from "framer-motion";
 import { TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { useLang } from "./LanguageContext";
 
 // ─── Candle chart generator ───────────────────────────────────────────────────
 
+// Deterministic PRNG (mulberry32). The initial candle set has to be identical
+// on the server and on the client — seeding it from Math.random() made every
+// render of this section a hydration mismatch, which took the whole page's
+// React tree down to a client-side re-render.
+function makeRandom(seed) {
+  let a = seed >>> 0;
+  return function random() {
+    a += 0x6d2b79f5;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function generateCandles(n = 40, seed = 100) {
+  const rand = makeRandom(seed * 7919);
   const candles = [];
   let price = seed;
   for (let i = 0; i < n; i++) {
-    const change = (Math.random() - 0.48) * 4;
+    const change = (rand() - 0.48) * 4;
     const open = price;
     const close = price + change;
-    const high = Math.max(open, close) + Math.random() * 2;
-    const low = Math.min(open, close) - Math.random() * 2;
+    const high = Math.max(open, close) + rand() * 2;
+    const low = Math.min(open, close) - rand() * 2;
     candles.push({ open, close, high, low });
     price = close;
   }
@@ -24,7 +41,7 @@ function generateCandles(n = 40, seed = 100) {
 // ─── Mini candlestick chart ───────────────────────────────────────────────────
 
 function CandleChart({ candles, width, height, highlight }) {
-  if (!candles.length) return null;
+  if (!candles.length || !width) return null;
   const allPrices = candles.flatMap((c) => [c.high, c.low]);
   const minP = Math.min(...allPrices);
   const maxP = Math.max(...allPrices);
@@ -91,6 +108,7 @@ function FloatPop({ value, x, y, id }) {
 const ASSETS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"];
 
 export default function TradingGame() {
+  const { t } = useLang();
   const [candles, setCandles] = useState(() => generateCandles(40, 100));
   const [asset, setAsset] = useState(0);
   const [position, setPosition] = useState(null); // { type: 'long'|'short', price, candle }
@@ -105,6 +123,22 @@ export default function TradingGame() {
   const posRef = useRef(null);
   const balRef = useRef(1000);
   const streakRef = useRef(0);
+  const popIdRef = useRef(0);
+
+  // The candle chart is an SVG with explicit pixel dimensions, so it has to be
+  // told how wide its container actually is rather than assuming 600px.
+  const chartBoxRef = useRef(null);
+  const [chartWidth, setChartWidth] = useState(0);
+
+  useEffect(() => {
+    const el = chartBoxRef.current;
+    if (!el) return;
+    const update = () => setChartWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Live price ticker
   useAnimationFrame((time) => {
@@ -139,16 +173,19 @@ export default function TradingGame() {
             streakRef.current = won ? streakRef.current + 1 : 0;
             setStreak(streakRef.current);
 
+            popIdRef.current += 1;
             setPops((p) => [...p.slice(-5), {
-              id: Date.now(),
+              id: popIdRef.current,
               value: rawPnl,
               x: Math.random() * 200 + 80,
               y: Math.random() * 60 + 40,
             }]);
 
             setMessage(won
-              ? streakRef.current >= 3 ? `🔥 ${streakRef.current}x streak!` : "✓ Nice call"
-              : "✗ Wrong direction"
+              ? streakRef.current >= 3
+                ? `🔥 ${streakRef.current}x ${t("home.gameStreakMsg")}`
+                : `✓ ${t("home.gameNice")}`
+              : `✗ ${t("home.gameWrong")}`
             );
             setTimeout(() => setMessage(null), 1500);
             posRef.current = null;
@@ -195,11 +232,11 @@ export default function TradingGame() {
         className="mb-10 sm:mb-16 text-center"
       >
      
-        <h2 className="mx-auto max-w-3xl bg-gradient-to-b from-white to-white/50 bg-clip-text text-4xl font-semibold leading-[1.15] tracking-tight text-transparent sm:text-5xl lg:text-6xl">
-          Feel the edge
+        <h2 className="text-display mx-auto max-w-3xl text-4xl font-semibold leading-[1.12] tracking-tight sm:text-5xl lg:text-[3.5rem]">
+          {t("home.gameTitle")}
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-base text-white/50">
-          Call the next candle. Long or Short. This is what your bot does — every second.
+        <p className="mx-auto mt-5 max-w-xl text-base text-white/45 sm:text-lg">
+          {t("home.gameSub")}
         </p>
       </motion.div>
 
@@ -209,30 +246,30 @@ export default function TradingGame() {
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         viewport={{ once: true }}
-        className="relative mx-auto max-w-2xl rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden"
+        className="surface relative mx-auto max-w-2xl overflow-hidden rounded-2xl"
       >
         {/* Top bar */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-white/[0.06] px-5 py-3.5">
           <button
             onClick={switchAsset}
             className="flex items-center gap-2 text-sm font-semibold text-white hover:text-white/80 transition-colors"
           >
             <span>{ASSETS[asset]}</span>
-            <span className="text-[10px] text-white/30 border border-white/10 rounded px-1">switch</span>
+            <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-white/30">{t("home.gameSwitch")}</span>
           </button>
 
           <div className="flex items-center gap-3">
-            <div className={`text-sm font-mono font-medium ${liveChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <div className={`tnum font-mono text-sm font-medium ${liveChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
               {liveChange >= 0 ? "▲" : "▼"} {Math.abs(liveChange).toFixed(2)}%
             </div>
-            <div className="text-xs text-white/30 font-mono">
+            <div className="tnum font-mono text-xs text-white/30">
               ${(90000 + currentPrice * 100).toFixed(0)}
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-white/30">Balance</span>
-            <span className={`font-semibold font-mono ${balance >= 1000 ? "text-white" : "text-red-400"}`}>
+            <span className="text-white/30">{t("home.gameBalance")}</span>
+            <span className={`tnum font-mono font-semibold ${balance >= 1000 ? "text-white" : "text-red-400"}`}>
               ${balance.toFixed(0)}
             </span>
           </div>
@@ -240,10 +277,10 @@ export default function TradingGame() {
 
         {/* Chart area */}
         <div className="relative px-4 pt-4 pb-2">
-          <div className="relative w-full" style={{ height: 180 }}>
+          <div ref={chartBoxRef} className="relative w-full" style={{ height: 180 }}>
             <CandleChart
               candles={candles}
-              width={600}
+              width={chartWidth}
               height={180}
               highlight={highlight}
             />
@@ -268,7 +305,7 @@ export default function TradingGame() {
                   }}
                 >
                   {position.type === "long" ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  {position.type.toUpperCase()} open
+                  {(position.type === "long" ? t("home.gameLong") : t("home.gameShort")).toUpperCase()} {t("home.gameOpen")}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -290,7 +327,7 @@ export default function TradingGame() {
 
           {/* Streak bar */}
           <div className="flex items-center gap-1.5 pb-1">
-            <span className="text-[10px] text-white/20">streak</span>
+            <span className="text-[10px] text-white/20">{t("home.gameStreak")}</span>
             {Array.from({ length: Math.min(streak, 8) }).map((_, i) => (
               <motion.div
                 key={i}
@@ -318,7 +355,7 @@ export default function TradingGame() {
             onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(52,211,153,0.12)"; }}
           >
             <TrendingUp className="h-4 w-4" />
-            Long
+            {t("home.gameLong")}
           </button>
           <button
             onClick={() => trade("short")}
@@ -333,14 +370,14 @@ export default function TradingGame() {
             onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.12)"; }}
           >
             <TrendingDown className="h-4 w-4" />
-            Short
+            {t("home.gameShort")}
           </button>
         </div>
 
         {/* Bottom hint */}
         <div className="border-t border-white/[0.05] px-5 py-3 text-center">
           <p className="text-[11px] text-white/25">
-            This is exactly what Cryphos bots do — automated, 24/7, across any asset.
+            {t("home.gameHint")}
           </p>
         </div>
       </motion.div>

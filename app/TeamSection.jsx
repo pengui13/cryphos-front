@@ -138,7 +138,7 @@ export default function TeamSection() {
         viewport={{ once: true }}
         className="mb-14 sm:mb-20 text-center"
       >
-        <h2 className="mx-auto max-w-3xl bg-gradient-to-b from-white to-white/50 bg-clip-text text-4xl font-semibold leading-[1.15] tracking-tight text-transparent sm:text-5xl lg:text-6xl">
+        <h2 className="mx-auto max-w-3xl text-display text-4xl font-semibold leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
           Built by obsessives
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-base text-white/50 sm:text-lg">

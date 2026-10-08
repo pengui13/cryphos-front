@@ -93,7 +93,20 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <title>Cryphos</title>
+        <title>Cryphos — Automated crypto analytics & strategy builder</title>
+        <meta
+          name="description"
+          content="Build, backtest and deploy crypto trading strategies. Multi-indicator signals delivered to Telegram, 24/7."
+        />
+        <meta name="theme-color" content="#08080b" />
+        <meta property="og:title" content="Cryphos" />
+        <meta
+          property="og:description"
+          content="Build, backtest and deploy crypto trading strategies. Multi-indicator signals delivered to Telegram, 24/7."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
         <link rel="preload" as="image" href="/logo.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
         <style>{`html,body{height:100%} body{margin:0;}`}</style>
@@ -105,7 +118,7 @@ export default function RootLayout({ children }) {
           )}
 
           <div
-            className="main-content"
+            className="main-content relative"
             style={{
               opacity: isShowingOverlay ? 0 : 1,
               pointerEvents: isShowingOverlay ? "none" : "auto",
