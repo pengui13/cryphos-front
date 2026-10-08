@@ -175,7 +175,7 @@ export default function BacktestModal({
               </div>
 
               <div className="flex items-center gap-3">
-                {roi != null && !loading && (
+                {hasData && !loading && roi != null && (
                   <div
                     className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                       roi >= 0
@@ -187,7 +187,7 @@ export default function BacktestModal({
                     {roi.toFixed(2)}%
                   </div>
                 )}
-                {totalPnlGlobal != null && !loading && (
+                {hasData && !loading && totalPnlGlobal != null && (
                   <div
                     className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                       totalPnlGlobal >= 0
